@@ -1,0 +1,14 @@
+---
+description: Project-specific context for Jin Yong fine-tune
+globs: ["**/*"]
+alwaysApply: true
+---
+
+# Project Context
+
+- Objective: Jin Yong style Chinese wuxia generation.
+- Base model: `Qwen/Qwen2.5-7B-Instruct`.
+- Runtime target: Kaggle T4 16GB with QLoRA.
+- Dataset schema: `instruction`, `input`, `output` in UTF-8 JSONL.
+- Keep Chinese punctuation and avoid modern slang in training data.
+

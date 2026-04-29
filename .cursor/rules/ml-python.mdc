@@ -1,0 +1,14 @@
+---
+description: ML Python conventions for this project
+globs: ["**/*.py", "**/*.ipynb"]
+alwaysApply: true
+---
+
+# ML Python Rules
+
+- Always use explicit torch dtype values when relevant.
+- Wrap generation calls in `torch.no_grad()`.
+- Prefer type hints on public functions.
+- Avoid hardcoded absolute paths.
+- Keep scripts reproducible with deterministic seeds.
+

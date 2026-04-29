@@ -1,0 +1,14 @@
+---
+description: HuggingFace PEFT and TRL conventions
+globs: ["**/*.py", "**/*.ipynb"]
+alwaysApply: true
+---
+
+# HuggingFace Rules
+
+- Call `prepare_model_for_kbit_training()` before attaching LoRA.
+- Set tokenizer pad token for causal LM if missing.
+- Use T4-safe precision defaults (`fp16=true`, `bf16=false`) on Kaggle T4.
+- Prefer config-driven hyperparameters over inline constants.
+- Save adapter checkpoints separately from base model weights.
+
