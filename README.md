@@ -37,20 +37,23 @@ jinyong-finetune/
 
 3. Put novel text files under `data/raw/`.
 
-4. Build cleaned text and instruction dataset:
+4. Clean encodings and noise, then build the instruction JSONL (from cleaned `data/processed/`):
 
-   `python scripts/build_instructions.py`
+   `python scripts/clean_text.py`
 
-5. Inspect generated JSONL:
+   `python scripts/build_instructions.py --stats`
 
-   `python scripts/build_instructions.py --dry-run`
+   To preview counts without writing JSONL: `python scripts/build_instructions.py --dry-run --stats`.
+
+   If you skip `clean_text.py` and point `--input-dir` at raw exports, add `--apply-clean`.
 
 ## Quick Start (Kaggle)
 
 1. Upload this repo to GitHub.
 2. Clone in Kaggle notebook.
-3. Upload/attach dataset file generated from `data/instructions/jinyong_sft.jsonl`.
-4. Run `notebooks/02_train.ipynb` cells.
+3. Download raw novels (optional locally): `kaggle datasets download -d evilpsycho42/jinyong-wuxia -p data/raw --unzip`
+4. Run `notebooks/01_data_prep.ipynb` to clean text and build JSONL, or attach a dataset that already contains `jinyong_sft.jsonl`.
+5. Run `notebooks/02_train.ipynb` cells.
 
 ## Dataset Schema
 

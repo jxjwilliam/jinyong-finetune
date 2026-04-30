@@ -42,5 +42,7 @@ training:
 
 data:
   instruction_jsonl: "data/instructions/jinyong_sft.jsonl"
+  raw_txt_dir: "data/raw"
+  processed_txt_dir: "data/processed"
   system_prompt: "你是一位精通金庸武侠风格的写作助手。"
 
