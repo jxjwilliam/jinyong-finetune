@@ -1,3 +1,7 @@
+"""
+Implement scripts/clean_text.py using @file:configs/qlora_config.yaml and @notepad:jinyong-project. The script should: accept a directory of .txt files, detect and normalize encoding (GB2312/UTF-8), strip chapter headers matching Chinese patterns, remove HTML artifacts, normalize punctuation, collapse whitespace, and write cleaned output to data/processed/. Add a --dry-run flag that prints stats without writing.
+"""
+
 from __future__ import annotations
 
 import argparse
