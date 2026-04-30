@@ -150,6 +150,7 @@ def main() -> None:
         train_dataset=dataset["train"],
         eval_dataset=dataset["test"],
         tokenizer=tokenizer,
+        dataset_text_field="text",
     )
     trainer.train()
 
