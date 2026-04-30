@@ -33,7 +33,35 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+
     config = load_config(Path(args.config))
+
+    # Set default training config values if missing
+    default_training = {
+        "output_dir": "outputs/jinyong-qlora",
+        "per_device_train_batch_size": 2,
+        "gradient_accumulation_steps": 8,
+        "learning_rate": 0.0002,
+        "lr_scheduler_type": "cosine",
+        "warmup_ratio": 0.05,
+        "num_train_epochs": 2,
+        "max_seq_length": 1024,
+        "save_steps": 100,
+        "save_total_limit": 3,
+        "logging_steps": 10,
+        "report_to": "none",
+        "fp16": True,
+        "bf16": False,
+        "packing": True,
+        "eval_split_ratio": 0.05,
+        "seed": 42,
+    }
+    if "training" not in config:
+        config["training"] = default_training.copy()
+    else:
+        for k, v in default_training.items():
+            if k not in config["training"]:
+                config["training"][k] = v
 
     model_cfg = config["model"]
     lora_cfg = config["lora"]
