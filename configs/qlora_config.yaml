@@ -1,8 +1,6 @@
 model:
   model_id: "Qwen/Qwen2.5-7B-Instruct"
   trust_remote_code: true
-
-quantization:
   load_in_4bit: true
   bnb_4bit_quant_type: "nf4"
   bnb_4bit_compute_dtype: "float16"   # T4 — no bfloat16
