@@ -21,6 +21,7 @@ jinyong-finetune/
 │   ├── clean_text.py
 │   ├── build_instructions.py
 │   ├── generate_typed_pairs.py
+│   ├── generate_more_types_pairs.py
 │   └── train.py
 ├── requirements.txt
 └── .cursor/rules/
@@ -53,6 +54,9 @@ jinyong-finetune/
    For stronger instruction-following, generate typed pairs then merge:
 
    `python scripts/generate_typed_pairs.py --output data/instructions/typed_pairs.jsonl --per-template 20`
+
+   Or use alternative Chinese-model APIs via `.env` keys (DeepSeek/Kimi/MiniMax/GLM):  
+   `pip install openai python-dotenv && python scripts/generate_more_types_pairs.py --dry-run`
 
    `python scripts/build_instructions.py --typed-jsonl data/instructions/typed_pairs.jsonl --stats`
 

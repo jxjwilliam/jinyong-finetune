@@ -23,7 +23,10 @@ Primary training target: **[AutoDL](https://www.autodl.com)** instances with **N
 ## Script order (data → train)
 
 1. `python scripts/clean_text.py` — `data/raw/*.txt` → `data/processed/*.txt` (dirs from YAML unless overridden).
-2. Optional but recommended: `python scripts/generate_typed_pairs.py` → e.g. `data/instructions/typed_pairs.jsonl` (needs `ANTHROPIC_API_KEY` if using Claude).
+2. Optional but recommended: typed pairs JSONL via **either**  
+   `python scripts/generate_typed_pairs.py` (`ANTHROPIC_API_KEY`) **or**  
+   `python scripts/generate_more_types_pairs.py` (DeepSeek/Kimi/MiniMax/GLM keys in `.env`; MiniMax China default `https://api.minimaxi.com/v1`; `pip install openai python-dotenv`).  
+   You can **concatenate** multiple JSONLs into one file before `--typed-jsonl` if desired.
 3. `python scripts/build_instructions.py --typed-jsonl data/instructions/typed_pairs.jsonl --stats` — writes `data.instruction_jsonl` from YAML (default `data/instructions/jinyong_sft.jsonl`).
 4. `python scripts/train.py --config configs/qlora_config.yaml` — writes **`outputs/jinyong-qlora/adapter/`** (LoRA only, not full merged weights).
 
