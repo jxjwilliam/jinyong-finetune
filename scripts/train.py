@@ -8,7 +8,11 @@ import torch
 import yaml
 from datasets import load_dataset
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from transformers import (
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    BitsAndBytesConfig,
+)
 from trl import SFTConfig, SFTTrainer
 
 
@@ -18,9 +22,10 @@ def load_config(path: Path) -> dict[str, Any]:
 
 
 def build_prompt(system_prompt: str, instruction: str, user_input: str, output: str) -> str:
+    user_content = f"{instruction}\n{user_input.strip()}" if user_input.strip() else instruction
     return (
         f"<|im_start|>system\n{system_prompt}<|im_end|>\n"
-        f"<|im_start|>user\n{instruction}\n{user_input}<|im_end|>\n"
+        f"<|im_start|>user\n{user_content}<|im_end|>\n"
         f"<|im_start|>assistant\n{output}<|im_end|>"
     )
 
@@ -33,15 +38,13 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-
     config = load_config(Path(args.config))
 
-    # Set default training config values if missing
-    default_training = {
+    default_training: dict[str, Any] = {
         "output_dir": "outputs/jinyong-qlora",
         "per_device_train_batch_size": 2,
         "gradient_accumulation_steps": 8,
-        "learning_rate": 0.0002,
+        "learning_rate": 2e-4,
         "lr_scheduler_type": "cosine",
         "warmup_ratio": 0.05,
         "num_train_epochs": 2,
@@ -52,16 +55,15 @@ def main() -> None:
         "report_to": "none",
         "fp16": True,
         "bf16": False,
-        "packing": True,
+        "packing": False,
         "eval_split_ratio": 0.05,
         "seed": 42,
+        "eval_steps": 100,
+        "gradient_checkpointing": True,
     }
-    if "training" not in config:
-        config["training"] = default_training.copy()
-    else:
-        for k, v in default_training.items():
-            if k not in config["training"]:
-                config["training"][k] = v
+    config.setdefault("training", {})
+    for k, v in default_training.items():
+        config["training"].setdefault(k, v)
 
     model_cfg = config["model"]
     lora_cfg = config["lora"]
@@ -95,7 +97,10 @@ def main() -> None:
     tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "right"
 
-    model = prepare_model_for_kbit_training(model)
+    model = prepare_model_for_kbit_training(
+        model,
+        use_gradient_checkpointing=train_cfg["gradient_checkpointing"],
+    )
     lora_config = LoraConfig(
         r=lora_cfg["r"],
         lora_alpha=lora_cfg["lora_alpha"],
@@ -107,23 +112,39 @@ def main() -> None:
     model = get_peft_model(model, lora_config)
     model.print_trainable_parameters()
 
-    dataset = load_dataset("json", data_files=data_cfg["instruction_jsonl"], split="train")
+    dataset = load_dataset(
+        "json",
+        data_files=data_cfg["instruction_jsonl"],
+        split="train",
+    )
     dataset = dataset.train_test_split(
         test_size=train_cfg["eval_split_ratio"],
         seed=train_cfg["seed"],
     )
 
+    system_prompt = data_cfg.get("system_prompt", "你是一位精通金庸武侠风格的写作助手。")
+
     def format_prompt(example: dict[str, str]) -> dict[str, str]:
         return {
             "text": build_prompt(
-                data_cfg["system_prompt"],
+                system_prompt,
                 example["instruction"],
-                example["input"],
+                example.get("input", ""),
                 example["output"],
             )
         }
 
-    dataset = dataset.map(format_prompt)
+    dataset = dataset.map(format_prompt, desc="Formatting prompts")
+
+    sample_texts = [dataset["train"][i]["text"] for i in range(min(5, len(dataset["train"])))]
+    if sample_texts:
+        lengths = [len(tokenizer.encode(t)) for t in sample_texts]
+        print(f"\nSample token lengths (first 5): {lengths}")
+        print(f"max_seq_length = {train_cfg['max_seq_length']}")
+        if max(lengths) > train_cfg["max_seq_length"]:
+            print("[warn] Some samples exceed max_seq_length and will be truncated.")
+        else:
+            print("[ok] All checked samples fit within max_seq_length.")
 
     training_args = SFTConfig(
         output_dir=train_cfg["output_dir"],
@@ -138,10 +159,14 @@ def main() -> None:
         save_steps=train_cfg["save_steps"],
         save_total_limit=train_cfg["save_total_limit"],
         logging_steps=train_cfg["logging_steps"],
+        evaluation_strategy="steps",
+        eval_steps=train_cfg["eval_steps"],
         report_to=train_cfg["report_to"],
         fp16=train_cfg["fp16"],
         bf16=train_cfg["bf16"],
         packing=train_cfg["packing"],
+        gradient_checkpointing=train_cfg["gradient_checkpointing"],
+        seed=train_cfg["seed"],
     )
 
     trainer = SFTTrainer(
@@ -152,12 +177,18 @@ def main() -> None:
         tokenizer=tokenizer,
         dataset_text_field="text",
     )
+
+    print(
+        f"\nTraining on {len(dataset['train']):,} samples, "
+        f"evaluating on {len(dataset['test']):,} samples"
+    )
+    print(f"packing={train_cfg['packing']}, max_seq_length={train_cfg['max_seq_length']}\n")
     trainer.train()
 
     adapter_dir = Path(train_cfg["output_dir"]) / "adapter"
     model.save_pretrained(str(adapter_dir))
     tokenizer.save_pretrained(str(adapter_dir))
-    print(f"saved adapter to: {adapter_dir}")
+    print(f"\nSaved adapter to: {adapter_dir}")
 
 
 if __name__ == "__main__":
