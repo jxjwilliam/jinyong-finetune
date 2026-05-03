@@ -40,10 +40,9 @@ outputs/jinyong-qlora/adapter/
 
 ---
 
-## 3. MacBook M3 Pro Setup (Local, China)
+## 3. MacBook M3 Pro Setup (Local, Canada)
 
 ### 3.1 Prerequisites
-
 ```bash
 # Check Python version (3.10+ recommended)
 python --version
@@ -59,7 +58,7 @@ pip install sentencepiece protobuf
 ```python
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"  # suppress fork warning
-# Optional: point to HF mirror if not using VPN
+# Optional: point to HF mirror if not using VPN (for users in China; not needed in Canada)
 # os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 ```
 

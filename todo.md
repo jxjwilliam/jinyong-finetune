@@ -82,3 +82,44 @@ outputs
         ├── tokenizer_config.json
         └── vocab.json
 ```
+
+
+## Fine-tuned LoRA ->  Ollama Built-in Chat
+
+### Step 1: Merge LoRA weights into the base model
+
+Ollama doesn't load LoRA adapters directly — you need to merge them first, then convert to GGUF.
+
+```bash
+python -m peft merge --base_model_name_or_path Qwen/Qwen2.5-7B-Instruct \
+ --peft_model_path ./outputs/jinyong-qlora --output_dir ./outputs/jinyong-merged
+```
+
+### Step 2: Convert merged model to GGUF
+
+```bash
+python ~/my-tools/llama.cpp/convert_hf_to_gguf.py ./outputs/jinyong-merged \
+  --outfile models/jinyong-lora.gguf \
+  --outtype q4_k_m
+```
+
+### Step 3: Create an Ollama Modelfile
+
+```dockerfile
+# Modelfile
+FROM /models/jinyong-lora.gguf
+
+SYSTEM """
+You are a Jin Yong wuxia storyteller. You speak in classical Chinese martial arts novel style.
+"""
+
+PARAMETER temperature 0.8
+PARAMETER num_ctx 4096
+```
+
+### Step 4: Register and run in Ollama
+
+```bash
+ollama create outputs/jinyong-lora -f models/Modelfile
+ollama run jinyong-lora
+```

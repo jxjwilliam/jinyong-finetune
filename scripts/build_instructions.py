@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import random
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
@@ -71,19 +73,29 @@ def continuation_pairs(segments: list[tuple[str, str]]) -> list[Pair]:
     return [Pair(DEFAULT_INSTRUCTION, inp, out) for inp, out in segments]
 
 
-def typed_scene_pairs(segments: list[tuple[str, str]], stride: int) -> list[Pair]:
-    if stride < 1:
-        raise ValueError("typed_stride must be >= 1")
-    pairs: list[Pair] = []
+def typed_scene_pairs(
+    segments: list[tuple[str, str]],
+    stride: int,
+    context_chars: int,
+) -> list[Pair]:
+    pairs = []
     typed_idx = 0
     for i, (inp, out) in enumerate(segments):
         if i % stride != 0:
             continue
         tpl = TYPED_TEMPLATES[typed_idx % len(TYPED_TEMPLATES)]
         typed_idx += 1
-        pairs.append(Pair(tpl, inp, out))
+        # Keep instruction/output semantically aligned:
+        # typed instruction asks for stylistic continuation from given context.
+        typed_instruction = (
+            f"{tpl}。请基于给定场景延展，不要逐字复述输入片段，保持文风古雅。"
+        )
+        pairs.append(Pair(
+            instruction=typed_instruction,
+            input=inp[:context_chars].strip(),
+            output=out,
+        ))
     return pairs
-
 
 def validate_pairs(pairs: Iterable[Pair], min_output_chars: int = 30) -> list[Pair]:
     validated: list[Pair] = []
@@ -131,7 +143,29 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--chunk-size", type=int, default=300)
     parser.add_argument("--overlap", type=int, default=100)
-    parser.add_argument("--typed-stride", type=int, default=8, help="Emit one typed pair every N sliding windows")
+    parser.add_argument(
+        "--typed-stride",
+        type=int,
+        default=4,
+        help="Emit one typed pair every N sliding windows",
+    )
+    parser.add_argument(
+        "--typed-context-chars",
+        type=int,
+        default=220,
+        help="Trim typed pair context input to this many chars",
+    )
+    parser.add_argument(
+        "--min-file-chars",
+        type=int,
+        default=5000,
+        help="Skip tiny .txt files to avoid dictionary/metadata noise",
+    )
+    parser.add_argument(
+        "--exclude-filename-regex",
+        default=r"(?:stopwords|person_count|person)\.txt$",
+        help="Regex for filenames to exclude from training corpus",
+    )
     parser.add_argument("--min-output-chars", type=int, default=30)
     parser.add_argument(
         "--apply-clean",
@@ -176,31 +210,48 @@ def main() -> None:
     if not txt_files:
         raise FileNotFoundError(f"No .txt files found in {input_dir}")
 
+    exclude_pat = re.compile(args.exclude_filename_regex, re.IGNORECASE)
     all_segments: list[tuple[str, str]] = []
+    used_files = 0
+    skipped_files = 0
     for txt_file in txt_files:
+        if exclude_pat.search(txt_file.name):
+            skipped_files += 1
+            print(f"{txt_file.name}: skipped (filename matched exclude pattern)")
+            continue
+
         text = txt_file.read_text(encoding="utf-8")
+        if len(text.strip()) < args.min_file_chars:
+            skipped_files += 1
+            print(f"{txt_file.name}: skipped (too short, chars={len(text.strip())})")
+            continue
+
         if args.apply_clean:
             text = clean_novel(text)
         segs = sliding_segments(text, args.chunk_size, args.overlap)
+        used_files += 1
         all_segments.extend(segs)
         print(f"{txt_file.name}: {len(segs)} sliding windows")
 
     cont_pairs = continuation_pairs(all_segments)
-    typed_pairs = typed_scene_pairs(all_segments, args.typed_stride)
+    typed_pairs = typed_scene_pairs(
+        all_segments,
+        args.typed_stride,
+        args.typed_context_chars,
+    )
     combined = cont_pairs + typed_pairs
 
     validated = validate_pairs(combined, min_output_chars=args.min_output_chars)
     if args.max_pairs is not None and len(validated) > args.max_pairs:
-        validated = sorted(
-            validated,
-            key=lambda p: (p.instruction, p.input, p.output),
-        )[: args.max_pairs]
+        rnd = random.Random(seed)
+        validated = rnd.sample(validated, args.max_pairs)
 
     n_cont_v = len(validate_pairs(cont_pairs, min_output_chars=args.min_output_chars))
     n_typ_v = len(validate_pairs(typed_pairs, min_output_chars=args.min_output_chars))
 
     if args.stats or args.dry_run:
         n_train, n_val = train_val_counts(len(validated), eval_ratio)
+        print(f"Files used / skipped: {used_files} / {skipped_files}")
         print(f"Continuation pairs:  {n_cont_v:,}")
         print(f"Typed scene pairs:   {n_typ_v:,}")
         print(f"Total pairs:         {len(validated):,}")

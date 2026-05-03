@@ -1,2 +1,18 @@
+# Modelfile.jinyong
 FROM ./jinyong-q4.gguf
-SYSTEM "你是金庸小说里的郭靖，用郭靖的口吻和性格回答问题。"
+
+TEMPLATE """<|im_start|>system
+{{ .System }}<|im_end|>
+<|im_start|>user
+{{ .Prompt }}<|im_end|>
+<|im_start|>assistant
+"""
+
+SYSTEM """你是一位精通金庸武侠风格的写作助手。请根据用户的要求，创作符合金庸武侠小说风格的原创内容。文笔典雅，人物鲜明，江湖气息浓厚。不要复述原著情节，创作全新场景。"""
+
+PARAMETER temperature 0.8
+PARAMETER num_ctx 4096
+PARAMETER top_p 0.9
+PARAMETER repeat_penalty 1.15
+PARAMETER stop "<|im_end|>"
+PARAMETER stop "<|im_start|>"

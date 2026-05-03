@@ -25,5 +25,4 @@ data/instructions/*.jsonl
 .cursor/mcp.json
 docs/kaggle.json
 .DS_Store
-.gguf
-jinyong-q4.gguf
+*.gguf
