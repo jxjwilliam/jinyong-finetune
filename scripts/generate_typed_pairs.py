@@ -75,7 +75,7 @@ VARIATION_HINTS = [
 def generate_one(client: anthropic.Anthropic, template: str, hint: str) -> str:
     prompt = f"{template}。\n（场景提示：{hint}）"
     response = client.messages.create(
-        model="claude-haiku-4-5",   # fast + cheap; swap to claude-sonnet-4-5 for higher quality
+        model="claude-haiku-4-5-20251001",   # pinned snapshot; swap to sonnet snapshot for higher quality
         max_tokens=400,
         system=SYSTEM,
         messages=[{"role": "user", "content": prompt}],
@@ -99,40 +99,55 @@ def main() -> None:
     args = parse_args()
     client = anthropic.Anthropic()   # reads ANTHROPIC_API_KEY from env
 
+    out_path = Path(args.output)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    append_fh = None
+    if not args.dry_run:
+        prev_n = 0
+        if out_path.exists():
+            with out_path.open(encoding="utf-8") as count_fh:
+                prev_n = sum(1 for line in count_fh if line.strip())
+        if prev_n:
+            print(f"[resume] Output file already has {prev_n:,} JSONL rows; appending new pairs.")
+        append_fh = out_path.open("a", encoding="utf-8")
+
     n_per = 1 if args.dry_run else args.per_template
     pairs: list[dict] = []
+    written_session = 0
     n_hints = len(VARIATION_HINTS)
 
-    for t_idx, template in enumerate(TYPED_TEMPLATES):
-        print(f"\n[{t_idx + 1}/{len(TYPED_TEMPLATES)}] {template}")
-        for i in range(n_per):
-            hint = VARIATION_HINTS[(t_idx * n_per + i) % n_hints]
-            try:
-                output = generate_one(client, template, hint)
-            except Exception as e:
-                print(f"  [error] sample {i+1}: {e}")
-                time.sleep(2)
-                continue
+    try:
+        for t_idx, template in enumerate(TYPED_TEMPLATES):
+            print(f"\n[{t_idx + 1}/{len(TYPED_TEMPLATES)}] {template}")
+            for i in range(n_per):
+                hint = VARIATION_HINTS[(t_idx * n_per + i) % n_hints]
+                try:
+                    output = generate_one(client, template, hint)
+                except Exception as e:
+                    print(f"  [error] sample {i+1}: {e}")
+                    time.sleep(2)
+                    continue
 
-            pair = {"instruction": template, "input": "", "output": output}
-            pairs.append(pair)
+                pair = {"instruction": template, "input": "", "output": output}
+                pairs.append(pair)
+                if append_fh is not None:
+                    append_fh.write(json.dumps(pair, ensure_ascii=False) + "\n")
+                    append_fh.flush()
+                    written_session += 1
 
-            if args.dry_run or i == 0:
-                print(f"  Sample {i+1}: {output[:80]}...")
+                if args.dry_run or i == 0:
+                    print(f"  Sample {i+1}: {output[:80]}...")
 
-            time.sleep(args.sleep)
+                time.sleep(args.sleep)
+    finally:
+        if append_fh is not None:
+            append_fh.close()
 
     if args.dry_run:
         print(f"\n[dry-run] Would write {len(pairs)} pairs. Re-run without --dry-run to save.")
         return
 
-    out_path = Path(args.output)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    with out_path.open("w", encoding="utf-8") as fh:
-        for pair in pairs:
-            fh.write(json.dumps(pair, ensure_ascii=False) + "\n")
-
-    print(f"\nSaved {len(pairs):,} typed pairs → {out_path}")
+    print(f"\nWrote {written_session:,} new typed pairs this run → {out_path}")
     print(f"Next: python scripts/build_instructions.py --typed-jsonl {out_path} --stats")
 
 

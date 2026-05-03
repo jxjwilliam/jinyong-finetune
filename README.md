@@ -39,6 +39,9 @@ jinyong-finetune/
 
    For training you also need a PyTorch + CUDA stack and packages such as `transformers`, `peft`, `trl`, `accelerate`, `bitsandbytes`, `datasets` (see `notebooks/02_train.ipynb` pip cell for pinned examples).
 
+**AutoDL env:**
+   `pip install -U bitsandbytes accelerate peft transformers datasets trl torch==2.1.0  # 适配4090的torch版本`
+
 3. Put novel text files under `data/raw/`.
 
 4. Clean encodings and noise, then build the instruction JSONL (from cleaned `data/processed/`):

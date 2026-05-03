@@ -5,6 +5,7 @@ model:
   bnb_4bit_quant_type: "nf4"
   bnb_4bit_compute_dtype: "bfloat16"   # T4/A100: float16, RTX 4090: bfloat16 
   bnb_4bit_use_double_quant: true
+  bnb_4bit_quant_storage: "uint8"
 
 lora:
   r: 64
@@ -20,6 +21,7 @@ lora:
     - "gate_proj"
     - "up_proj"
     - "down_proj"
+  modules_to_save: ["embed_tokens", "lm_head"]
 
 training:
   output_dir: "outputs/jinyong-qlora"
@@ -48,6 +50,9 @@ training:
   gradient_checkpointing: true         # saves ~3 GB VRAM, no accuracy loss
   eval_split_ratio: 0.05
   seed: 42
+  dataloader_num_workers: 2
+  dataloader_pin_memory: true
+  remove_unused_columns: false  # 避免Qwen的自定义列被删除
 
 data:
   instruction_jsonl: "data/instructions/jinyong_sft.jsonl"

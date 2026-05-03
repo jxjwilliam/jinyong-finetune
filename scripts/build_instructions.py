@@ -3,9 +3,14 @@ from __future__ import annotations
 import argparse
 import json
 import random
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
+
+_script_dir = Path(__file__).resolve().parent
+if str(_script_dir) not in sys.path:
+    sys.path.insert(0, str(_script_dir))
 
 try:
     from clean_text import clean_novel

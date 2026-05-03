@@ -53,8 +53,8 @@ def main() -> None:
         "save_total_limit": 3,
         "logging_steps": 10,
         "report_to": "none",
-        "fp16": True,
-        "bf16": False,
+        "fp16": False,
+        "bf16": True,
         "packing": False,
         "eval_split_ratio": 0.05,
         "seed": 42,
@@ -97,9 +97,13 @@ def main() -> None:
     tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "right"
 
+    _gc_kw: dict[str, Any] = {}
+    if train_cfg["gradient_checkpointing"]:
+        _gc_kw["gradient_checkpointing_kwargs"] = {"use_reentrant": False}
     model = prepare_model_for_kbit_training(
         model,
         use_gradient_checkpointing=train_cfg["gradient_checkpointing"],
+        **_gc_kw,
     )
     lora_config = LoraConfig(
         r=lora_cfg["r"],
@@ -159,7 +163,7 @@ def main() -> None:
         save_steps=train_cfg["save_steps"],
         save_total_limit=train_cfg["save_total_limit"],
         logging_steps=train_cfg["logging_steps"],
-        evaluation_strategy="steps",
+        eval_strategy="steps",
         eval_steps=train_cfg["eval_steps"],
         report_to=train_cfg["report_to"],
         fp16=train_cfg["fp16"],
@@ -169,13 +173,16 @@ def main() -> None:
         seed=train_cfg["seed"],
     )
 
+    def _format_example(example: dict[str, str]) -> str:
+        return example["text"]
+
     trainer = SFTTrainer(
         model=model,
         args=training_args,
         train_dataset=dataset["train"],
         eval_dataset=dataset["test"],
         tokenizer=tokenizer,
-        dataset_text_field="text",
+        formatting_func=_format_example,
     )
 
     print(
