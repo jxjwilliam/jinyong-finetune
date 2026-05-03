@@ -3,7 +3,7 @@ model:
   trust_remote_code: true
   load_in_4bit: true
   bnb_4bit_quant_type: "nf4"
-  bnb_4bit_compute_dtype: "float16"   # T4/A100 — use bfloat16 on RTX 4090
+  bnb_4bit_compute_dtype: "bfloat16"   # T4/A100: float16, RTX 4090: bfloat16 
   bnb_4bit_use_double_quant: true
 
 lora:
@@ -23,8 +23,8 @@ lora:
 
 training:
   output_dir: "outputs/jinyong-qlora"
-  per_device_train_batch_size: 2
-  gradient_accumulation_steps: 8       # effective batch = 16
+  per_device_train_batch_size: 4
+  gradient_accumulation_steps: 4       # effective batch = 16
   learning_rate: 2.0e-4
   lr_scheduler_type: "cosine"
   warmup_ratio: 0.05
@@ -37,8 +37,8 @@ training:
   save_total_limit: 3
   logging_steps: 10
   report_to: "none"
-  fp16: true
-  bf16: false
+  fp16: false
+  bf16: true
   # BUG FIX: was true — packing=True concatenates samples across chat
   # boundaries, teaching the model to ignore <|im_start|> tokens and
   # treat all input as raw continuation. This was the primary cause of

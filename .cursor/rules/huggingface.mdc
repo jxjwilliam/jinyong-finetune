@@ -8,7 +8,7 @@ alwaysApply: true
 
 - Call `prepare_model_for_kbit_training()` before attaching LoRA.
 - Set tokenizer pad token for causal LM if missing.
-- Use T4-safe precision defaults (`fp16=true`, `bf16=false`) on Kaggle T4.
+- Precision follows **`configs/qlora_config.yaml`**: default repo profile is **bf16 + `bnb_4bit_compute_dtype: bfloat16`** (AutoDL RTX 4090 / Ada). On **Kaggle T4** (no bf16), use **`fp16=true`**, **`bf16=false`**, **`bnb_4bit_compute_dtype: float16`** in a dedicated config copy — do not assume T4 in the default YAML.
 - Prefer config-driven hyperparameters over inline constants.
 - Save adapter checkpoints separately from base model weights.
 

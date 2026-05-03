@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Purpose
 
-Fine-tune `Qwen/Qwen2.5-7B-Instruct` with QLoRA (4-bit NF4 quantization) to generate Chinese wuxia fiction in the style of Jin Yong (金庸). Designed to run on Kaggle free-tier T4 GPU (16GB VRAM).
+Fine-tune `Qwen/Qwen2.5-7B-Instruct` with QLoRA (4-bit NF4 quantization) to generate Chinese wuxia fiction in the style of Jin Yong (金庸). **Primary runtime:** AutoDL **[autodl.com](https://www.autodl.com)** with **NVIDIA RTX 4090 (24 GB VRAM)**. **Optional:** Kaggle T4 / Colab GPU with an adjusted YAML (see `.cursor/rules/autodl.mdc`).
 
 ## Setup
 
@@ -49,7 +49,7 @@ data/raw/*.txt
 ```
 
 ### Training config (`configs/qlora_config.yaml`)
-Single source of truth for all hyperparameters — no inline constants in `train.py`. Key values: `r=64`, `lora_alpha=128`, `batch_size=2`, `gradient_accumulation_steps=8` (effective batch=16), `learning_rate=2e-4`, `max_seq_length=1024`, `fp16=true`, `eval_split_ratio=0.05`.
+Single source of truth for all hyperparameters — no inline constants in `train.py`. Typical values (4090-focused default): `r=64`, `lora_alpha=128`, `per_device_train_batch_size=4`, `gradient_accumulation_steps=4` (effective batch=16), `learning_rate=2e-4`, `max_seq_length=1024`, `fp16=false`, `bf16=true`, `packing=false`, `eval_split_ratio=0.05`.
 
 ### ChatML prompt format
 ```
@@ -63,7 +63,7 @@ Single source of truth for all hyperparameters — no inline constants in `train
 
 ## Constraints & Conventions
 
-- **Platform target:** Kaggle T4 (16GB VRAM) — use `fp16=True, bf16=False`; T4 does not support bf16.
+- **Platform target (default YAML):** AutoDL RTX 4090 (24 GB) — `fp16=False`, `bf16=True`, `bnb_4bit_compute_dtype: bfloat16` in `configs/qlora_config.yaml`. For **Kaggle T4**, use `fp16=True`, `bf16=False`, `bnb_4bit_compute_dtype: float16` in a copied config — T4 has no bf16 tensors.
 - **Model order:** always call `prepare_model_for_kbit_training()` before `get_peft_model()`.
 - **Tokenizer:** set `pad_token = eos_token` and `padding_side = "right"` for causal LM fine-tuning.
 - **LoRA targets:** all 7 projection layers — `q_proj`, `k_proj`, `v_proj`, `o_proj`, `gate_proj`, `up_proj`, `down_proj`.
@@ -77,6 +77,6 @@ Single source of truth for all hyperparameters — no inline constants in `train
 
 | Notebook | Purpose |
 |---|---|
-| `notebooks/01_data_prep.ipynb` | Runs `build_instructions.py --dry-run`, inspects pair counts |
-| `notebooks/02_train.ipynb` | Runs `train.py` with the YAML config |
+| `notebooks/01_data_prep.ipynb` | Resolves repo root; `clean_text.py` / `build_instructions.py` |
+| `notebooks/02_train.ipynb` | AutoDL-oriented GPU setup + same `train.py` + YAML as CLI |
 | `notebooks/03_inference.ipynb` | Loads base tokenizer for generation testing |

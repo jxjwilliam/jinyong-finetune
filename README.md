@@ -1,6 +1,6 @@
-# Jin Yong Fine-Tune (Kaggle-First)
+# Jin Yong Fine-Tune (AutoDL + QLoRA)
 
-This repository scaffolds a Kaggle-first workflow to fine-tune `Qwen/Qwen2.5-7B-Instruct` with QLoRA for Jin Yong style wuxia generation.
+Fine-tune **`Qwen/Qwen2.5-7B-Instruct`** with **QLoRA** (4-bit NF4) for Jin Yong–style Chinese wuxia generation. The default training profile targets **[AutoDL](https://www.autodl.com)** with **NVIDIA RTX 4090 (24 GB VRAM)**; **Kaggle / Colab** remain optional with a smaller-GPU config (see `.cursor/rules/autodl.mdc`).
 
 ## Project Layout
 
@@ -20,6 +20,7 @@ jinyong-finetune/
 ├── scripts/
 │   ├── clean_text.py
 │   ├── build_instructions.py
+│   ├── generate_typed_pairs.py
 │   └── train.py
 ├── requirements.txt
 └── .cursor/rules/
@@ -35,6 +36,8 @@ jinyong-finetune/
 
    `pip install -r requirements.txt`
 
+   For training you also need a PyTorch + CUDA stack and packages such as `transformers`, `peft`, `trl`, `accelerate`, `bitsandbytes`, `datasets` (see `notebooks/02_train.ipynb` pip cell for pinned examples).
+
 3. Put novel text files under `data/raw/`.
 
 4. Clean encodings and noise, then build the instruction JSONL (from cleaned `data/processed/`):
@@ -47,13 +50,26 @@ jinyong-finetune/
 
    If you skip `clean_text.py` and point `--input-dir` at raw exports, add `--apply-clean`.
 
-## Quick Start (Kaggle)
+   For stronger instruction-following, generate typed pairs then merge:
+
+   `python scripts/generate_typed_pairs.py --output data/instructions/typed_pairs.jsonl --per-template 20`
+
+   `python scripts/build_instructions.py --typed-jsonl data/instructions/typed_pairs.jsonl --stats`
+
+## Quick Start (AutoDL)
+
+1. Clone this repo on the instance (e.g. under `/root/autodl-tmp/jinyong-finetune`).
+2. Open **`notebooks/02_train.ipynb`** or run the same commands from the repo root (GPU check + install cell, then `clean_text` → `build_instructions` → `train.py`).
+3. Populate **`data/raw/`** (upload, `scp`, or `kaggle datasets download …` if you use the Kaggle API on the box).
+4. Training reads **`configs/qlora_config.yaml`** (`bf16`, `packing: false`, effective batch 16 on 4090).
+5. Artifacts: **`outputs/jinyong-qlora/adapter/`**. Zip and download before the instance recycles. Merge / GGUF / Ollama: **`docs/LORA_TO_GGUF_GUIDE.md`**.
+
+## Quick Start (Kaggle / Colab, optional)
 
 1. Upload this repo to GitHub.
-2. Clone in Kaggle notebook.
-3. Download raw novels (optional locally): `kaggle datasets download -d evilpsycho42/jinyong-wuxia -p data/raw --unzip`
-4. Run `notebooks/01_data_prep.ipynb` to clean text and build JSONL, or attach a dataset that already contains `jinyong_sft.jsonl`.
-5. Run `notebooks/02_train.ipynb` cells.
+2. Clone in a GPU notebook; attach or download the **Jinyong Wuxia** dataset: `kaggle datasets download -d evilpsycho42/jinyong-wuxia -p data/raw --unzip`
+3. Run `notebooks/01_data_prep.ipynb` then `notebooks/02_train.ipynb`.
+4. On **T4 (16 GB)** you may need a copied YAML with **`fp16: true`**, **`bf16: false`**, **`bnb_4bit_compute_dtype: float16`**, and smaller `per_device_train_batch_size` — see `.cursor/rules/autodl.mdc`.
 
 ## Dataset Schema
 
@@ -69,7 +85,6 @@ Each JSONL row:
 
 ## Notes
 
-- Default settings are tuned for Kaggle T4 16GB.
-- `outputs/` and raw/processed datasets are ignored by git.
+- Default **`configs/qlora_config.yaml`** is tuned for **RTX 4090** (bf16 + bnb float16 compute as bfloat16 where set in YAML).
+- `outputs/` and raw/processed/instruction datasets are ignored by git.
 - Keep text UTF-8 encoded.
-

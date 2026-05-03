@@ -1,0 +1,44 @@
+---
+description: AutoDL (autodl.com) cloud GPU workflow for QLoRA fine-tuning Jin Yong style
+globs: ["configs/**", "scripts/**", "notebooks/**", "docs/LORA_TO_GGUF_GUIDE.md", "docs/INFERENCE_GUIDE.md"]
+alwaysApply: false
+---
+
+# AutoDL — LoRA / QLoRA fine-tune
+
+Primary training target: **[AutoDL](https://www.autodl.com)** instances with **NVIDIA RTX 4090 (24 GB VRAM)** and **`Qwen/Qwen2.5-7B-Instruct`**.
+
+## Environment
+
+- Typical project path: `/root/autodl-tmp/jinyong-finetune` (clone or `scp` the repo there; Jupyter often starts under this tree).
+- **CUDA + bitsandbytes** are required for 4-bit QLoRA in `scripts/train.py`.
+- If **Hugging Face Hub** is slow or blocked, set before first model download: `HF_ENDPOINT=https://hf-mirror.com` (or use a local / ModelScope cache — document any mirror in the user’s runbook, not as hardcoded paths in code).
+
+## Single source of truth
+
+- All training hyperparameters and dtype choices live in **`configs/qlora_config.yaml`**.
+- **Ada / RTX 4090 profile** in that file: `training.bf16: true`, `training.fp16: false`, `model.bnb_4bit_compute_dtype: bfloat16`, **`training.packing: false`** (required for correct ChatML boundaries).
+- Do not embed duplicate batch/LR/seq defaults in `train.py`; only YAML fallbacks when keys are missing.
+
+## Script order (data → train)
+
+1. `python scripts/clean_text.py` — `data/raw/*.txt` → `data/processed/*.txt` (dirs from YAML unless overridden).
+2. Optional but recommended: `python scripts/generate_typed_pairs.py` → e.g. `data/instructions/typed_pairs.jsonl` (needs `ANTHROPIC_API_KEY` if using Claude).
+3. `python scripts/build_instructions.py --typed-jsonl data/instructions/typed_pairs.jsonl --stats` — writes `data.instruction_jsonl` from YAML (default `data/instructions/jinyong_sft.jsonl`).
+4. `python scripts/train.py --config configs/qlora_config.yaml` — writes **`outputs/jinyong-qlora/adapter/`** (LoRA only, not full merged weights).
+
+Run from **repo root** so imports and relative paths resolve (`python scripts/...`).
+
+## Notebooks
+
+- **`notebooks/02_train.ipynb`** is aligned with AutoDL (repo resolution, pip cell, optional Kaggle dataset download).
+- Use the same YAML as CLI training; no second set of “magic” hyperparameters in the notebook.
+
+## After training
+
+- Zip or `scp` **`outputs/jinyong-qlora/adapter/`** (and tokenizer files there) off the instance.
+- Full merged HF weights / GGUF / Ollama: follow **`docs/LORA_TO_GGUF_GUIDE.md`** (merge on GPU host, then Mac-side convert if applicable).
+
+## Alternatives (not AutoDL)
+
+- **Kaggle T4 (16 GB)** or **Colab T4/L4/A100**: if VRAM is tight, lower `per_device_train_batch_size` and raise `gradient_accumulation_steps` to keep effective batch ≈ 16; on **T4** use **`fp16: true`**, **`bf16: false`**, and **`bnb_4bit_compute_dtype: float16`** in a **separate** config copy — do not overwrite the default 4090-oriented YAML without intent.
