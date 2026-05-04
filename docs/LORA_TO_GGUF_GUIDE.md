@@ -42,7 +42,8 @@ The adapter is just LoRA delta weights (~300 MB). llama.cpp needs the **full mer
 From the repo root (SSH or Jupyter), same paths as training:
 
 ```bash
-cd /root/autodl-tmp/jinyong-finetune   # example; use your clone path
+cd /root/autodl-tmp/jinyong-finetune
+export HF_ENDPOINT=https://hf-mirror.com
 python scripts/merge_lora.py --config configs/qlora_config.yaml
 ```
 
@@ -79,29 +80,18 @@ ls -lh jinyong-merged.zip   # expect ~13-14 GB
 Open a **local terminal** on your MacBook (not the AutoDL SSH session):
 
 ```bash
-# Create destination
-mkdir -p ~/models/jinyong-merged
-
 # Download — takes ~15-30 min depending on connection
 scp -P 46840 \
   root@connect.cqa1.seetacloud.com:/root/autodl-tmp/jinyong-finetune/outputs/jinyong-merged.zip \
   ~/Desktop/jinyong-merged.zip
 
 # Unzip
-cd ~/Desktop
-unzip jinyong-merged.zip -d ~/models/
-# Result: ~/models/jinyong-merged/
+unzip jinyong-merged.zip -d .../outputs/
+# Result: this-app/outputs/jinyong-merged/
 
 # Verify
-ls -lh ~/models/jinyong-merged/
+ls -lh outputs/jinyong-merged/
 ```
-
-> **Tip — resume interrupted SCP:**
-> ```bash
-> rsync -avz --progress -e "ssh -p 46840" \
->   root@connect.cqa1.seetacloud.com:/root/autodl-tmp/jinyong-finetune/outputs/jinyong-merged.zip \
->   ~/Desktop/jinyong-merged.zip
-> ```
 
 ---
 
@@ -118,26 +108,13 @@ pip install transformers sentencepiece protobuf
 
 # Convert to float16 GGUF first (lossless intermediate)
 python ~/my-tools/llama.cpp/convert_hf_to_gguf.py \
-  ~/models/jinyong-merged \
-  --outfile ~/models/jinyong-f16.gguf \
+  ./outputs/jinyong-merged \
+  --outfile ./models/jinyong-f16.gguf \
   --outtype f16
 
 # Check output
-ls -lh ~/models/jinyong-f16.gguf   # expect ~14 GB
+ls -lh this-app/models/jinyong-f16.gguf   # expect ~14 GB
 ```
-
-Expected output:
-```
-INFO:hf-to-gguf:Model successfully exported to ~/models/jinyong-f16.gguf
-```
-
-> **If the script errors on Qwen architecture:**
-> ```bash
-> # Update llama.cpp to latest
-> cd ~/my-tools/llama.cpp && git pull && make -j$(sysctl -n hw.logicalcpu)
-> ```
-
----
 
 ## Step 4 — Quantize
 
@@ -181,53 +158,6 @@ This is the most important configuration step. The Modelfile must include:
 - System prompt tuned for Jin Yong style
 - Generation parameters optimised for Chinese creative writing
 
-```dockerfile
-# ~/models/Modelfile.jinyong
-
-FROM /Users/<your-username>/models/jinyong-q4.gguf
-
-# ── Chat Template ─────────────────────────────────────────────────────────
-# Qwen2.5-Instruct uses ChatML format.
-# CRITICAL: without this, Ollama treats all input as raw continuation
-# and the model will reproduce training text instead of following instructions.
-TEMPLATE """<|im_start|>system
-{{ .System }}<|im_end|>
-<|im_start|>user
-{{ .Prompt }}<|im_end|>
-<|im_start|>assistant
-"""
-
-# ── System Prompt ─────────────────────────────────────────────────────────
-SYSTEM """你是一位精通金庸武侠风格的写作助手。请根据用户的要求，创作符合金庸武侠小说风格的原创内容。文笔典雅，人物鲜明，江湖气息浓厚。不要复述原著情节，创作全新场景。"""
-
-# ── Generation Parameters ─────────────────────────────────────────────────
-# temperature: 0.8 gives creative but coherent Chinese prose
-PARAMETER temperature 0.8
-
-# top_p: 0.9 filters low-probability tokens that cause incoherence
-PARAMETER top_p 0.9
-
-# repeat_penalty: 1.15 is critical for Chinese — prevents looping phrases
-# (Chinese LLMs are prone to repetition without this)
-PARAMETER repeat_penalty 1.15
-
-# num_predict: max tokens to generate per response
-PARAMETER num_predict 512
-
-# num_ctx: context window — keep at 2048 minimum for multi-turn wuxia scenes
-PARAMETER num_ctx 2048
-
-# Stop tokens — must match Qwen's special tokens exactly
-PARAMETER stop "<|im_end|>"
-PARAMETER stop "<|im_start|>"
-PARAMETER stop "<|endoftext|>"
-```
-
-Replace `<your-username>` with your actual username:
-```bash
-sed -i '' "s/<your-username>/$(whoami)/" ~/models/Modelfile.jinyong
-```
-
 ---
 
 ## Step 6 — Register with Ollama
@@ -237,7 +167,7 @@ sed -i '' "s/<your-username>/$(whoami)/" ~/models/Modelfile.jinyong
 ollama rm jinyong 2>/dev/null || true
 
 # Create new model from fixed GGUF + Modelfile
-ollama create jinyong -f ~/models/Modelfile.jinyong
+ollama create jinyong -f ./models/Modelfile
 
 # Verify registration
 ollama list
@@ -343,7 +273,7 @@ Score each output on these 5 dimensions (1–5 each, max 25):
 | 画面感 | Visually translatable — can you picture it as a video shot? |
 | 原创性 | No recognizable scenes from original novels |
 
-Target: fine-tuned score ≥ base model on 文风典雅 and 武功描写. If base wins on all 5, the fine-tune needs more typed pairs — run `generate_typed_pairs.py`.
+Target: fine-tuned score ≥ base model on 文风典雅 and 武功描写. If base wins on all 5, the fine-tune needs more typed pairs — run `scripts/generate_typed_pairs.py` (`claude` or `openai`); see **`docs/TYPED_PAIRS_PIPELINE.md`**.
 
 ---
 

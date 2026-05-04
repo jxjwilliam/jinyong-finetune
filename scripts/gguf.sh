@@ -4,11 +4,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 LLAMA_DIR="${LLAMA_DIR:-${HOME}/my-tools/llama.cpp}"
-MODELS_DIR="${MODELS_DIR:-${HOME}/models}"
-MERGED_DIR="${1:-${MODELS_DIR}/jinyong-merged}"
+MODELS_DIR="${MODELS_DIR:-${REPO_ROOT}/models}"
+MERGED_DIR="${1:-${REPO_ROOT}/outputs/jinyong-merged}"
 F16_OUT="${MODELS_DIR}/jinyong-f16.gguf"
-Q4_OUT="${MODELS_DIR}/jinyong-q4.gguf"
-Q5_OUT="${MODELS_DIR}/jinyong-q5.gguf"
+Q4_OUT="${MODELS_DIR}/jinyong-q4_k_m.gguf"
+Q5_OUT="${MODELS_DIR}/jinyong-q5_k_m.gguf"
 BUILD_Q5="${BUILD_Q5:-0}"
 KEEP_F16="${KEEP_F16:-0}"
 
@@ -21,13 +21,13 @@ Usage:
   scripts/gguf.sh [MERGED_DIR]
 
 Defaults:
-  MERGED_DIR = ~/models/jinyong-merged
+  MERGED_DIR = ./outputs/jinyong-merged
   LLAMA_DIR  = ~/my-tools/llama.cpp
-  MODELS_DIR = ~/models
+  MODELS_DIR = ./models
 
 Optional env:
-  BUILD_Q5=1   Also build ~/models/jinyong-q5.gguf
-  KEEP_F16=1   Keep ~/models/jinyong-f16.gguf after quantization
+  BUILD_Q5=1   Also build ./models/jinyong-q5_k_m.gguf
+  KEEP_F16=1   Keep ./models/jinyong-f16.gguf after quantization
 EOF
 }
 

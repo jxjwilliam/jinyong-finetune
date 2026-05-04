@@ -4,7 +4,6 @@ import argparse
 import json
 import random
 import sys
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -18,37 +17,9 @@ except ImportError:
     def clean_novel(text: str) -> str:
         return text
 
+from instruction_jsonl import Pair, load_pairs_jsonl, pair_to_json_obj
+
 DEFAULT_INSTRUCTION = "以金庸武侠小说的风格，续写以下段落："
-
-TYPED_TEMPLATES: tuple[str, ...] = (
-    "以金庸武侠风格，描写一场高手之间的内力比拼，约200字",
-    "以金庸风格写一段江湖儿女的离别场景，情感含蓄，约200字",
-    "描写一位武功高强但性格孤傲的侠客初入客栈的场景，约200字",
-    "用金庸笔法写出两个门派之间因误会而起的冲突，约200字",
-    "以金庸笔法描写一位高手施展轻功的场景，约200字",
-    "写一段金庸风格的武学秘籍传授场景，师父语气庄重，约200字",
-    "描写一场以少胜多的江湖打斗，主角以智取胜，约200字",
-    "以金庸风格写一段两位旧识重逢却各怀心事的对话，约200字",
-    "描写一个初出茅庐的少年第一次见识真正高手的震撼，约200字",
-    "以金庸笔法写出一位反派的出场，气势逼人却不失深度，约200字",
-    "用金庸风格描写江湖门派的拜师仪式，约200字",
-    "写一段武功秘籍的文字描述，风格古朴，暗含哲理，约200字",
-    "以金庸风格描写两位武林高手以棋局论道的场景，约200字",
-    "写一段江湖恩怨中的临终托付场景，情真意切，约200字",
-    "以金庸风格描写一场追逐战，穿越山林水泽，约200字",
-    "描写一位隐居高人被迫出山的内心挣扎，约200字",
-    "以金庸笔法写出一段武功心法的顿悟场景，约200字",
-    "描写江湖中一次重大武林大会的开场，约200字",
-    "写一段金庸风格的毒功与解毒的对决，约200字",
-    "以金庸风格描写一位侠客独自面对绝境的内心独白，约200字",
-)
-
-
-@dataclass
-class Pair:
-    instruction: str
-    input: str
-    output: str
 
 
 def load_yaml(path: Path) -> dict[str, Any] | None:
@@ -81,22 +52,17 @@ def continuation_pairs(segments: list[tuple[str, str]]) -> list[Pair]:
     return [Pair(DEFAULT_INSTRUCTION, inp, out) for inp, out in segments]
 
 
-def load_typed_pairs_from_jsonl(path: Path) -> list[Pair]:
-    pairs: list[Pair] = []
-    with path.open(encoding="utf-8") as fh:
-        for line in fh:
-            line = line.strip()
-            if not line:
-                continue
-            obj = json.loads(line)
-            pairs.append(
-                Pair(
-                    instruction=obj["instruction"],
-                    input=obj.get("input", ""),
-                    output=obj["output"],
-                )
-            )
-    return pairs
+def expand_typed_jsonl_paths(entries: list[str] | None) -> list[Path]:
+    """Flatten repeatable ``--typed-jsonl`` args and comma-separated paths."""
+    if not entries:
+        return []
+    out: list[Path] = []
+    for entry in entries:
+        for part in entry.split(","):
+            p = part.strip()
+            if p:
+                out.append(Path(p))
+    return out
 
 
 def validate_pairs(pairs: Iterable[Pair], min_output_chars: int = 50) -> list[Pair]:
@@ -131,8 +97,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", default=None, help="Output JSONL path")
     parser.add_argument(
         "--typed-jsonl",
+        action="append",
         default=None,
-        help="Path to pre-generated typed pairs JSONL (from generate_typed_pairs.py). If omitted, typed pairs are skipped.",
+        metavar="PATH",
+        help=(
+            "Typed pairs JSONL (repeat flag or comma-separated in one arg). "
+            "Skipped if path missing. See docs/TYPED_PAIRS_PIPELINE.md."
+        ),
     )
     parser.add_argument("--chunk-size", type=int, default=300)
     parser.add_argument("--overlap", type=int, default=100)
@@ -193,17 +164,22 @@ def main() -> None:
     cont_valid = validate_pairs(cont_pairs, args.min_output_chars)
 
     typed_valid: list[Pair] = []
-    if args.typed_jsonl:
-        typed_path = Path(args.typed_jsonl)
-        if typed_path.is_file():
-            raw_typed = load_typed_pairs_from_jsonl(typed_path)
-            typed_valid = validate_pairs(raw_typed, args.min_output_chars)
-            print(f"\nLoaded {len(raw_typed):,} typed pairs -> {len(typed_valid):,} valid")
-        else:
-            print(f"[warn] --typed-jsonl not found: {typed_path}, skipping")
+    typed_paths = expand_typed_jsonl_paths(args.typed_jsonl)
+    if typed_paths:
+        raw_total = 0
+        for typed_path in typed_paths:
+            if not typed_path.is_file():
+                print(f"[warn] --typed-jsonl not found: {typed_path}, skipping")
+                continue
+            raw_typed = load_pairs_jsonl(typed_path)
+            raw_total += len(raw_typed)
+            batch = validate_pairs(raw_typed, args.min_output_chars)
+            typed_valid.extend(batch)
+            print(f"\nLoaded {typed_path}: {len(raw_typed):,} rows -> {len(batch):,} valid")
+        print(f"Typed pairs total (valid): {len(typed_valid):,} (from {raw_total:,} raw rows)")
     else:
         print("\n[info] No --typed-jsonl provided. Only continuation pairs will be used.")
-        print("       Run generate_typed_pairs.py first for better instruction-following.")
+        print("       Run scripts/generate_typed_pairs.py claude|openai … (see docs/TYPED_PAIRS_PIPELINE.md).")
 
     combined = cont_valid + typed_valid
 
@@ -227,12 +203,7 @@ def main() -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", encoding="utf-8") as fh:
         for pair in combined:
-            row = {
-                "instruction": pair.instruction,
-                "input": pair.input,
-                "output": pair.output,
-            }
-            fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+            fh.write(json.dumps(pair_to_json_obj(pair), ensure_ascii=False) + "\n")
 
     print(f"\nSaved -> {output_path}  ({len(combined):,} rows)")
 

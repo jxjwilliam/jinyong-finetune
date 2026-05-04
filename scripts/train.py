@@ -94,6 +94,8 @@ def main() -> None:
         device_map="auto",
         trust_remote_code=model_cfg["trust_remote_code"],
     )
+    model.enable_input_require_grads()
+    
     tokenizer = AutoTokenizer.from_pretrained(
         model_cfg["model_id"],
         trust_remote_code=model_cfg["trust_remote_code"],

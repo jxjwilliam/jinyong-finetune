@@ -23,10 +23,10 @@ Primary training target: **[AutoDL](https://www.autodl.com)** instances with **N
 ## Script order (data → train)
 
 1. `python scripts/clean_text.py` — `data/raw/*.txt` → `data/processed/*.txt` (dirs from YAML unless overridden).
-2. Optional but recommended: typed pairs JSONL via **either**  
-   `python scripts/generate_typed_pairs.py` (`ANTHROPIC_API_KEY`) **or**  
-   `python scripts/generate_more_types_pairs.py` (DeepSeek/Kimi/MiniMax/GLM keys in `.env`; MiniMax China default `https://api.minimaxi.com/v1`; `pip install openai python-dotenv`).  
-   You can **concatenate** multiple JSONLs into one file before `--typed-jsonl` if desired.
+2. Optional but recommended: typed pairs JSONL via **`scripts/generate_typed_pairs.py`**:  
+   `… claude …` (`ANTHROPIC_API_KEY`; `pip install anthropic`) **or**  
+   `… openai --providers deepseek,kimi,…` (keys in `.env`; MiniMax China default `https://api.minimaxi.com/v1`; `pip install openai python-dotenv`).  
+   Pass **multiple** `--typed-jsonl` paths to **`build_instructions.py`** (no manual `cat`).
 3. Preview: `python scripts/build_instructions.py --dry-run --stats`. Write JSONL: `python scripts/build_instructions.py --stats` (add `--typed-jsonl path.jsonl` if you generated typed pairs).
 4. `python scripts/train.py --config configs/qlora_config.yaml` — writes **`outputs/jinyong-qlora/adapter/`** (LoRA only, not full merged weights).
 5. Optional on the same GPU host: `python scripts/merge_lora.py --config configs/qlora_config.yaml` — full-precision merged HF dir (default **`outputs/jinyong-merged/`**) for GGUF export; see **`docs/LORA_TO_GGUF_GUIDE.md`**.

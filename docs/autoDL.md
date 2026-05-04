@@ -85,9 +85,14 @@ python scripts/build_instructions.py --dry-run --stats
 
 ```bash
 # Optional: API-generated typed scenes (see README)
-# python scripts/generate_typed_pairs.py --output data/instructions/typed_pairs.jsonl
+# python scripts/generate_typed_pairs.py claude --output data/instructions/typed_pairs.jsonl
 
 python scripts/build_instructions.py --typed-jsonl data/instructions/typed_pairs.jsonl --stats
+# Multiple typed files (merged and shuffled together):
+# python scripts/build_instructions.py \
+#   --typed-jsonl data/instructions/typed_pairs.jsonl \
+#   --typed-jsonl data/instructions/more_types_deepseek.jsonl \
+#   --stats
 # If you have no typed_pairs file, omit --typed-jsonl:
 # python scripts/build_instructions.py --stats
 ```
@@ -119,6 +124,19 @@ cd outputs && zip -r jinyong-adapter.zip jinyong-qlora/adapter/
 
 ```bash
 python scripts/merge_lora.py --config configs/qlora_config.yaml
+```
+
+If **`huggingface.co`** is unreachable (**Errno 101**), use a mirror or stay offline (base must already be cached from training):
+
+```bash
+export HF_ENDPOINT=https://hf-mirror.com
+python scripts/merge_lora.py --config configs/qlora_config.yaml
+# or inline:
+python scripts/merge_lora.py --config configs/qlora_config.yaml --hf-endpoint https://hf-mirror.com
+
+# Fully offline — point at the hub snapshot directory (see scripts/merge_lora.py --help)
+python scripts/merge_lora.py --config configs/qlora_config.yaml --local-files-only \
+  --base-model-path ~/.cache/huggingface/hub/models--Qwen--Qwen2.5-7B-Instruct/snapshots/<hash>
 ```
 
 Defaults: adapter = **`{training.output_dir}/adapter`**, merged output = **`outputs/jinyong-merged`** when `output_dir` is `outputs/jinyong-qlora`. Override with **`--adapter`** / **`--merged-dir`**. If VRAM is tight: **`--dtype float16`**.

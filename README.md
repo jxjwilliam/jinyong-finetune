@@ -2,17 +2,19 @@
 
 Fine-tune **`Qwen/Qwen2.5-7B-Instruct`** with **QLoRA** (4-bit NF4) for Jin Yong–style Chinese wuxia generation. The default training profile targets **[AutoDL](https://www.autodl.com)** with **NVIDIA RTX 4090 (24 GB VRAM)**; **Kaggle / Colab** remain optional with a smaller-GPU config (see **`.cursor/rules/autodl.mdc`**).
 
-**AutoDL end-to-end steps:** **`docs/autoDL.md`**
+**AutoDL end-to-end steps:** **`docs/autoDL.md`**  
+**Typed scene generation + merge:** **`docs/TYPED_PAIRS_PIPELINE.md`** (architecture diagrams + CLI)
 
 ## Project Layout
 
-```
+```text
 jinyong-finetune/
 ├── configs/
 │   └── qlora_config.yaml
 ├── docs/
-│   ├── autoDL.md              # AutoDL Jupyter / SSH runbook
-│   ├── LORA_TO_GGUF_GUIDE.md  # merge → GGUF → Ollama
+│   ├── autoDL.md                 # AutoDL Jupyter / SSH runbook
+│   ├── TYPED_PAIRS_PIPELINE.md   # typed scenes: buckets, diagrams, CLI
+│   ├── LORA_TO_GGUF_GUIDE.md     # merge → GGUF → Ollama
 │   └── INFERENCE_GUIDE.md
 ├── data/
 │   ├── raw/
@@ -25,11 +27,12 @@ jinyong-finetune/
 ├── outputs/
 ├── scripts/
 │   ├── clean_text.py
-│   ├── build_instructions.py
-│   ├── generate_typed_pairs.py
-│   ├── generate_more_types_pairs.py
+│   ├── build_instructions.py     # continuations + optional typed JSONL merge
+│   ├── typed_prompts.py          # jinyong_template.json · buckets · prompts · hint loop
+│   ├── instruction_jsonl.py      # Pair schema · JSONL helpers (shared with build)
+│   ├── generate_typed_pairs.py   # `claude` | `openai` subcommands → typed JSONL
 │   ├── train.py
-│   └── merge_lora.py          # full HF merge after training (for GGUF / non-PEFT)
+│   └── merge_lora.py             # full HF merge after training (for GGUF / non-PEFT)
 ├── requirements.txt
 └── .cursor/rules/
 ```
@@ -68,23 +71,25 @@ jinyong-finetune/
 
    If you skip **`clean_text.py`** and point **`--input-dir`** at raw exports, add **`--apply-clean`**.
 
-   For stronger instruction-following, generate typed pairs then merge:
+   **Optional typed scenes** (disjoint buckets per backend — see **`docs/TYPED_PAIRS_PIPELINE.md`**):
 
-   `python scripts/generate_typed_pairs.py --output data/instructions/typed_pairs.jsonl --per-template 20`
+   `pip install anthropic && python scripts/generate_typed_pairs.py claude --bucket claude --output data/instructions/typed_pairs.jsonl --per-template 10`
 
-   Or use alternative Chinese-model APIs via **`.env`** keys (DeepSeek/Kimi/MiniMax/GLM):
+   `pip install openai python-dotenv && python scripts/generate_typed_pairs.py openai --dry-run`
 
-   `pip install openai python-dotenv && python scripts/generate_more_types_pairs.py --dry-run`
+   `python scripts/generate_typed_pairs.py openai --providers deepseek,kimi,minimax,glm --output data/instructions/more_types_pairs.jsonl`
 
-   `python scripts/build_instructions.py --typed-jsonl data/instructions/typed_pairs.jsonl --stats`
+   Merge **one or more** typed JSONLs with continuations:
+
+   `python scripts/build_instructions.py --typed-jsonl data/instructions/typed_pairs.jsonl --typed-jsonl data/instructions/more_types_pairs.jsonl --stats`
 
 6. Train:
 
    `python scripts/train.py --config configs/qlora_config.yaml`
 
-7. (Optional) Merge LoRA into full HF weights for GGUF or non-PEFT inference:
+7. Merge LoRA into full HF weights for GGUF or non-PEFT inference:
 
-   `python scripts/merge_lora.py --config configs/qlora_config.yaml`
+   `python scripts/merge_lora.py --config configs/qlora_config.yaml --hf-endpoint https://hf-mirror.com`
 
 ## Quick Start (AutoDL)
 
@@ -94,6 +99,21 @@ jinyong-finetune/
 4. Training reads **`configs/qlora_config.yaml`** (**bf16**, **`packing: false`**, effective batch 16 on 4090 by default).
 5. **LoRA artifacts:** **`outputs/jinyong-qlora/adapter/`** — zip and download before the instance recycles.
 6. **Merged HF checkpoint (optional, on GPU):** **`scripts/merge_lora.py`** → default **`outputs/jinyong-merged/`**, then zip. **GGUF / Ollama:** **`docs/LORA_TO_GGUF_GUIDE.md`**.
+
+## Step-by-Step Workflow
+
+Use this end-to-end sequence if you want a single checklist from raw text to deployable model:
+
+1. Prepare environment: create/activate `.venv`, install `requirements.txt`, and ensure a CUDA-compatible PyTorch build is installed.
+2. Place source novels under **`data/raw/`**.
+3. Normalize text with **`python scripts/clean_text.py`**.
+4. Build continuation-style SFT data with **`python scripts/build_instructions.py --stats`**.
+5. (Optional) Generate typed scene pairs with **`scripts/generate_typed_pairs.py`** and merge via one or more `--typed-jsonl` flags in **`build_instructions.py`**.
+6. Train LoRA adapter with **`python scripts/train.py --config configs/qlora_config.yaml`**.
+7. Validate generation using **`notebooks/03_inference.ipynb`** or your local inference script.
+8. (Optional) Merge LoRA into full HF weights using **`python scripts/merge_lora.py --config configs/qlora_config.yaml`**.
+9. (Optional) Export to GGUF/Ollama using **`docs/LORA_TO_GGUF_GUIDE.md`**.
+10. Archive/download artifacts from **`outputs/`** before ephemeral cloud instances are recycled.
 
 ## Quick Start (Kaggle / Colab, optional)
 

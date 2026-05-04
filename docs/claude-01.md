@@ -43,7 +43,7 @@ python scripts/clean_text.py --src data/raw --dst data/processed
 
 # Step 2 — generate typed pairs via Claude API
 export ANTHROPIC_API_KEY=sk-ant-...
-python scripts/generate_typed_pairs.py \
+python scripts/generate_typed_pairs.py claude \
     --output data/instructions/typed_pairs.jsonl \
     --per-template 20 \
     --dry-run   # verify first, remove flag to actually write
@@ -70,10 +70,10 @@ tail -f train.log
 
 ```bash
 # Dry run — 1 sample per template, prints output, costs ~$0.01
-python scripts/generate_typed_pairs.py --dry-run
+python scripts/generate_typed_pairs.py claude --dry-run
 
-# Full run — 20 samples × 20 templates = 400 pairs, ~$0.18
-python scripts/generate_typed_pairs.py \
+# Full run — e.g. many samples × templates in claude bucket — tune --per-template
+python scripts/generate_typed_pairs.py claude \
     --output data/instructions/typed_pairs.jsonl \
     --per-template 20 \
     --sleep 0.5   # increase if you hit rate limits
@@ -82,7 +82,7 @@ python scripts/generate_typed_pairs.py \
 **One bug to fix** — the model string:
 
 ```python
-# generate_typed_pairs.py line ~85
+# generate_typed_pairs.py (_generate_claude_one)
 # current:
 model="claude-haiku-4-5",
 # correct current model string:

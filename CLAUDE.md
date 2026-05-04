@@ -25,6 +25,10 @@ python scripts/build_instructions.py --stats
 python scripts/build_instructions.py --dry-run --stats
 python scripts/build_instructions.py --chunk-size 300 --overlap 100
 
+# Optional typed scenes → JSONL (`docs/TYPED_PAIRS_PIPELINE.md`)
+python scripts/generate_typed_pairs.py claude --dry-run
+python scripts/generate_typed_pairs.py openai --dry-run
+
 # Train (all hyperparameters come from the YAML config)
 python scripts/train.py --config configs/qlora_config.yaml
 ```
@@ -37,7 +41,7 @@ python scripts/train.py --config configs/qlora_config.yaml
 data/raw/*.txt
   → scripts/clean_text.py        strips headers, HTML, fullwidth spaces, normalizes whitespace
   → data/processed/*.txt         (optional intermediate)
-  → scripts/build_instructions.py  sliding-window continuations (chunk=300, overlap=100) + typed scene pairs (20 templates)
+  → scripts/build_instructions.py  sliding-window continuations (chunk=300, overlap=100) + typed scene pairs (~100 templates from `configs/jinyong_template.json`, optional multi-`--typed-jsonl`)
   → data/instructions/jinyong_sft.jsonl   {instruction, input, output} rows
   → scripts/train.py             loads YAML config, 4-bit Qwen2.5-7B, QLoRA r=64
   → outputs/jinyong-qlora/adapter/        saved LoRA adapter (not full weights)
