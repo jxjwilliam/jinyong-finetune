@@ -1,6 +1,8 @@
 # Jin Yong Fine-Tune (AutoDL + QLoRA)
 
-Fine-tune **`Qwen/Qwen2.5-7B-Instruct`** with **QLoRA** (4-bit NF4) for Jin Yong–style Chinese wuxia generation. The default training profile targets **[AutoDL](https://www.autodl.com)** with **NVIDIA RTX 4090 (24 GB VRAM)**; **Kaggle / Colab** remain optional with a smaller-GPU config (see `.cursor/rules/autodl.mdc`).
+Fine-tune **`Qwen/Qwen2.5-7B-Instruct`** with **QLoRA** (4-bit NF4) for Jin Yong–style Chinese wuxia generation. The default training profile targets **[AutoDL](https://www.autodl.com)** with **NVIDIA RTX 4090 (24 GB VRAM)**; **Kaggle / Colab** remain optional with a smaller-GPU config (see **`.cursor/rules/autodl.mdc`**).
+
+**AutoDL end-to-end steps:** **`docs/autoDL.md`**
 
 ## Project Layout
 
@@ -8,6 +10,10 @@ Fine-tune **`Qwen/Qwen2.5-7B-Instruct`** with **QLoRA** (4-bit NF4) for Jin Yong
 jinyong-finetune/
 ├── configs/
 │   └── qlora_config.yaml
+├── docs/
+│   ├── autoDL.md              # AutoDL Jupyter / SSH runbook
+│   ├── LORA_TO_GGUF_GUIDE.md  # merge → GGUF → Ollama
+│   └── INFERENCE_GUIDE.md
 ├── data/
 │   ├── raw/
 │   ├── processed/
@@ -22,7 +28,8 @@ jinyong-finetune/
 │   ├── build_instructions.py
 │   ├── generate_typed_pairs.py
 │   ├── generate_more_types_pairs.py
-│   └── train.py
+│   ├── train.py
+│   └── merge_lora.py          # full HF merge after training (for GGUF / non-PEFT)
 ├── requirements.txt
 └── .cursor/rules/
 ```
@@ -37,46 +44,63 @@ jinyong-finetune/
 
    `pip install -r requirements.txt`
 
-   For training you also need a PyTorch + CUDA stack and packages such as `transformers`, `peft`, `trl`, `accelerate`, `bitsandbytes`, `datasets` (see `notebooks/02_train.ipynb` pip cell for pinned examples).
+   For training you also need a **PyTorch + CUDA** stack plus **`transformers`**, **`peft`**, **`trl`**, **`accelerate`**, **`bitsandbytes`**, **`datasets`**. The **`notebooks/02_train.ipynb`** setup cell installs an unpinned set suitable for current **`scripts/train.py`**.
 
-**AutoDL env:**
-   `pip install -U bitsandbytes accelerate peft transformers datasets trl torch==2.1.0  # 适配4090的torch版本`
+3. **AutoDL-style stack (if you mirror the cloud env):**
 
-3. Put novel text files under `data/raw/`.
+   `pip install -U bitsandbytes accelerate peft transformers datasets trl pyyaml`
 
-4. Clean encodings and noise, then build the instruction JSONL (from cleaned `data/processed/`):
+   Install **torch** for your CUDA version from [pytorch.org](https://pytorch.org/get-started/locally/) if it is missing.
+
+4. Put novel text files under **`data/raw/`**.
+
+5. Clean encodings and noise, then build the instruction JSONL (from cleaned **`data/processed/`**):
 
    `python scripts/clean_text.py`
 
+   Preview counts **without** writing JSONL:
+
+   `python scripts/build_instructions.py --dry-run --stats`
+
+   **Write** the JSONL (default path from YAML, e.g. **`data/instructions/jinyong_sft.jsonl`**):
+
    `python scripts/build_instructions.py --stats`
 
-   To preview counts without writing JSONL: `python scripts/build_instructions.py --dry-run --stats`.
-
-   If you skip `clean_text.py` and point `--input-dir` at raw exports, add `--apply-clean`.
+   If you skip **`clean_text.py`** and point **`--input-dir`** at raw exports, add **`--apply-clean`**.
 
    For stronger instruction-following, generate typed pairs then merge:
 
    `python scripts/generate_typed_pairs.py --output data/instructions/typed_pairs.jsonl --per-template 20`
 
-   Or use alternative Chinese-model APIs via `.env` keys (DeepSeek/Kimi/MiniMax/GLM):  
+   Or use alternative Chinese-model APIs via **`.env`** keys (DeepSeek/Kimi/MiniMax/GLM):
+
    `pip install openai python-dotenv && python scripts/generate_more_types_pairs.py --dry-run`
 
    `python scripts/build_instructions.py --typed-jsonl data/instructions/typed_pairs.jsonl --stats`
 
+6. Train:
+
+   `python scripts/train.py --config configs/qlora_config.yaml`
+
+7. (Optional) Merge LoRA into full HF weights for GGUF or non-PEFT inference:
+
+   `python scripts/merge_lora.py --config configs/qlora_config.yaml`
+
 ## Quick Start (AutoDL)
 
-1. Clone this repo on the instance (e.g. under `/root/autodl-tmp/jinyong-finetune`).
-2. Open **`notebooks/02_train.ipynb`** or run the same commands from the repo root (GPU check + install cell, then `clean_text` → `build_instructions` → `train.py`).
-3. Populate **`data/raw/`** (upload, `scp`, or `kaggle datasets download …` if you use the Kaggle API on the box).
-4. Training reads **`configs/qlora_config.yaml`** (`bf16`, `packing: false`, effective batch 16 on 4090).
-5. Artifacts: **`outputs/jinyong-qlora/adapter/`**. Zip and download before the instance recycles. Merge / GGUF / Ollama: **`docs/LORA_TO_GGUF_GUIDE.md`**.
+1. Clone the repo on the instance (e.g. **`/root/autodl-tmp/jinyong-finetune`**).
+2. Follow **`docs/autoDL.md`** (environment, **`data/raw/`**, **`clean_text`** → **`build_instructions`** → **`train.py`** → optional **`merge_lora.py`**, zip/download).
+3. Use **`notebooks/01_data_prep.ipynb`** / **`02_train.ipynb`** / **`03_inference.ipynb`** from repo root if you prefer Jupyter; they match the same YAML and scripts as the CLI.
+4. Training reads **`configs/qlora_config.yaml`** (**bf16**, **`packing: false`**, effective batch 16 on 4090 by default).
+5. **LoRA artifacts:** **`outputs/jinyong-qlora/adapter/`** — zip and download before the instance recycles.
+6. **Merged HF checkpoint (optional, on GPU):** **`scripts/merge_lora.py`** → default **`outputs/jinyong-merged/`**, then zip. **GGUF / Ollama:** **`docs/LORA_TO_GGUF_GUIDE.md`**.
 
 ## Quick Start (Kaggle / Colab, optional)
 
 1. Upload this repo to GitHub.
 2. Clone in a GPU notebook; attach or download the **Jinyong Wuxia** dataset: `kaggle datasets download -d evilpsycho42/jinyong-wuxia -p data/raw --unzip`
-3. Run `notebooks/01_data_prep.ipynb` then `notebooks/02_train.ipynb`.
-4. On **T4 (16 GB)** you may need a copied YAML with **`fp16: true`**, **`bf16: false`**, **`bnb_4bit_compute_dtype: float16`**, and smaller `per_device_train_batch_size` — see `.cursor/rules/autodl.mdc`.
+3. Run **`notebooks/01_data_prep.ipynb`** then **`notebooks/02_train.ipynb`** (or the same shell commands as **`docs/autoDL.md`**).
+4. On **T4 (16 GB)** you may need a copied YAML with **`fp16: true`**, **`bf16: false`**, **`bnb_4bit_compute_dtype: float16`**, and smaller **`per_device_train_batch_size`** — see **`.cursor/rules/autodl.mdc`**.
 
 ## Dataset Schema
 
@@ -92,6 +116,6 @@ Each JSONL row:
 
 ## Notes
 
-- Default **`configs/qlora_config.yaml`** is tuned for **RTX 4090** (bf16 + bnb float16 compute as bfloat16 where set in YAML).
-- `outputs/` and raw/processed/instruction datasets are ignored by git.
-- Keep text UTF-8 encoded.
+- Default **`configs/qlora_config.yaml`** is tuned for **RTX 4090** (**bf16**, **`bnb_4bit_compute_dtype: bfloat16`**).
+- **`outputs/`** and raw/processed/instruction datasets are ignored by git.
+- Keep text **UTF-8** encoded.

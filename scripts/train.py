@@ -77,12 +77,16 @@ def main() -> None:
     }
     compute_dtype = dtype_map[model_cfg["bnb_4bit_compute_dtype"]]
 
-    bnb_config = BitsAndBytesConfig(
-        load_in_4bit=model_cfg["load_in_4bit"],
-        bnb_4bit_quant_type=model_cfg["bnb_4bit_quant_type"],
-        bnb_4bit_compute_dtype=compute_dtype,
-        bnb_4bit_use_double_quant=model_cfg["bnb_4bit_use_double_quant"],
-    )
+    bnb_kwargs: dict[str, Any] = {
+        "load_in_4bit": model_cfg["load_in_4bit"],
+        "bnb_4bit_quant_type": model_cfg["bnb_4bit_quant_type"],
+        "bnb_4bit_compute_dtype": compute_dtype,
+        "bnb_4bit_use_double_quant": model_cfg["bnb_4bit_use_double_quant"],
+    }
+    # Optional: e.g. uint8 storage when set in YAML (BitsAndBytesConfig naming).
+    if model_cfg.get("bnb_4bit_quant_storage") == "uint8":
+        bnb_kwargs["bnb_4bit_quant_storage"] = torch.uint8
+    bnb_config = BitsAndBytesConfig(**bnb_kwargs)
 
     model = AutoModelForCausalLM.from_pretrained(
         model_cfg["model_id"],
@@ -105,16 +109,24 @@ def main() -> None:
         use_gradient_checkpointing=train_cfg["gradient_checkpointing"],
         **_gc_kw,
     )
-    lora_config = LoraConfig(
-        r=lora_cfg["r"],
-        lora_alpha=lora_cfg["lora_alpha"],
-        target_modules=lora_cfg["target_modules"],
-        lora_dropout=lora_cfg["lora_dropout"],
-        bias=lora_cfg["bias"],
-        task_type=lora_cfg["task_type"],
-    )
+    lora_kwargs: dict[str, Any] = {
+        "r": lora_cfg["r"],
+        "lora_alpha": lora_cfg["lora_alpha"],
+        "target_modules": lora_cfg["target_modules"],
+        "lora_dropout": lora_cfg["lora_dropout"],
+        "bias": lora_cfg["bias"],
+        "task_type": lora_cfg["task_type"],
+    }
+    if lora_cfg.get("modules_to_save"):
+        lora_kwargs["modules_to_save"] = lora_cfg["modules_to_save"]
+    lora_config = LoraConfig(**lora_kwargs)
     model = get_peft_model(model, lora_config)
     model.print_trainable_parameters()
+
+    # Required for gradient checkpointing + frozen base + LoRA: activations into
+    # checkpointed blocks must require grad or backward skips LoRA (loss has no grad_fn).
+    if train_cfg["gradient_checkpointing"] and hasattr(model, "enable_input_require_grads"):
+        model.enable_input_require_grads()
 
     dataset = load_dataset(
         "json",
@@ -150,6 +162,11 @@ def main() -> None:
         else:
             print("[ok] All checked samples fit within max_seq_length.")
 
+    _sft_gc: dict[str, Any] = {}
+    if train_cfg["gradient_checkpointing"]:
+        # Trainer re-applies GC; without this, torch warns and may use reentrant checkpointing.
+        _sft_gc["gradient_checkpointing_kwargs"] = {"use_reentrant": False}
+
     training_args = SFTConfig(
         output_dir=train_cfg["output_dir"],
         per_device_train_batch_size=train_cfg["per_device_train_batch_size"],
@@ -171,6 +188,7 @@ def main() -> None:
         packing=train_cfg["packing"],
         gradient_checkpointing=train_cfg["gradient_checkpointing"],
         seed=train_cfg["seed"],
+        **_sft_gc,
     )
 
     def _format_example(example: dict[str, str]) -> str:

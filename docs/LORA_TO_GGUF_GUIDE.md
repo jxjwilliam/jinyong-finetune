@@ -39,52 +39,16 @@ outputs/jinyong-qlora/
 
 The adapter is just LoRA delta weights (~300 MB). llama.cpp needs the **full merged model** to convert. Do this on AutoDL where RAM/VRAM is sufficient.
 
-```bash
-# SSH into AutoDL
-ssh -p 46840 root@connect.cqa1.seetacloud.com
-
-cd /root/autodl-tmp/jinyong-finetune
-```
-
-```python
-# merge_adapter.py — run this on AutoDL
-import torch
-from peft import PeftModel
-from transformers import AutoModelForCausalLM, AutoTokenizer
-
-adapter_path  = "./outputs/jinyong-qlora/adapter"
-base_model_id = "Qwen/Qwen2.5-7B-Instruct"
-output_dir    = "./outputs/jinyong-merged"
-
-print("Loading base model in float16...")
-model = AutoModelForCausalLM.from_pretrained(
-    base_model_id,
-    torch_dtype=torch.float16,
-    device_map="auto",
-    trust_remote_code=True,
-)
-tokenizer = AutoTokenizer.from_pretrained(base_model_id, trust_remote_code=True)
-
-print("Attaching LoRA adapter...")
-model = PeftModel.from_pretrained(model, adapter_path)
-
-print("Merging weights (this takes ~2 min)...")
-model = model.merge_and_unload()
-
-print(f"Saving merged model to {output_dir} ...")
-model.save_pretrained(output_dir, safe_serialization=True)
-tokenizer.save_pretrained(output_dir)
-
-print("Done. Verify:")
-import os
-for f in sorted(os.listdir(output_dir)):
-    size = os.path.getsize(f"{output_dir}/{f}") / 1e6
-    print(f"  {f:45s} {size:8.1f} MB")
-```
+From the repo root (SSH or Jupyter), same paths as training:
 
 ```bash
-python merge_adapter.py
+cd /root/autodl-tmp/jinyong-finetune   # example; use your clone path
+python scripts/merge_lora.py --config configs/qlora_config.yaml
 ```
+
+This reads **`configs/qlora_config.yaml`** for the base model id and adapter directory (**`outputs/jinyong-qlora/adapter`** by default) and writes **`outputs/jinyong-merged/`** (override with **`--merged-dir`** / **`--dtype float16`** if needed). See **`docs/autoDL.md`** for the full AutoDL runbook.
+
+Equivalent one-off Python (if you prefer not to use the script) is the same logic: load base in full precision → **`PeftModel.from_pretrained`** → **`merge_and_unload()`** → **`save_pretrained`**.
 
 Expected output directory (~14 GB total):
 ```
