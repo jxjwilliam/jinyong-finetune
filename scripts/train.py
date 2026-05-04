@@ -119,8 +119,7 @@ def main() -> None:
         "bias": lora_cfg["bias"],
         "task_type": lora_cfg["task_type"],
     }
-    if lora_cfg.get("modules_to_save"):
-        lora_kwargs["modules_to_save"] = lora_cfg["modules_to_save"]
+
     lora_config = LoraConfig(**lora_kwargs)
     model = get_peft_model(model, lora_config)
     model.print_trainable_parameters()
