@@ -59,7 +59,7 @@ Previously every generator reused the same **20 prose prompts**, so multiple API
 
 | Bucket    | Template ids | Typical command                                              |
 |-----------|--------------|--------------------------------------------------------------|
-| `claude`  | 1–20         | `python scripts/generate_typed_pairs.py claude …`            |
+| `claude`  | 1–20         | `python scripts/gen/generate_typed_pairs.py claude …`            |
 | `deepseek` | 21–40       | `… openai --providers deepseek …`                           |
 | `kimi`    | 41–60        | `… openai --providers kimi …`                               |
 | `minimax` | 61–80        | `… openai --providers minimax …`                            |
@@ -67,8 +67,8 @@ Previously every generator reused the same **20 prose prompts**, so multiple API
 
 Shared library code:
 
-- [`scripts/typed_prompts.py`](../scripts/typed_prompts.py) — **`SYSTEM_PROMPT_JINYONG_TYPED`**, **`VARIATION_HINTS`**, **`load_typed_scenes`**, **`scenes_for_bucket`**, **`scenes_for_provider_slug`**, **`typed_user_turn`**, **`each_typed_sample`**.
-- [`scripts/instruction_jsonl.py`](../scripts/instruction_jsonl.py) — **`Pair`** / **`typed_pair_dict`** / **`load_pairs_jsonl`** — same schema as **`build_instructions.py`**.
+- [`scripts/lib/typed_prompts.py`](../scripts/lib/typed_prompts.py) — **`SYSTEM_PROMPT_JINYONG_TYPED`**, **`VARIATION_HINTS`**, **`load_typed_scenes`**, **`scenes_for_bucket`**, **`scenes_for_provider_slug`**, **`typed_user_turn`**, **`each_typed_sample`**.
+- [`scripts/lib/instruction_jsonl.py`](../scripts/lib/instruction_jsonl.py) — **`Pair`** / **`typed_pair_dict`** / **`load_pairs_jsonl`** — same schema as **`build_instructions.py`**.
 
 ## Commands
 
@@ -76,7 +76,7 @@ Shared library code:
 
 ```bash
 export ANTHROPIC_API_KEY=...
-python scripts/generate_typed_pairs.py claude \
+python scripts/gen/generate_typed_pairs.py claude \
   --output data/instructions/typed_pairs.jsonl \
   --bucket claude \
   --templates-config configs/jinyong_template.json \
@@ -89,7 +89,7 @@ Configure `.env` keys (see script docstring / `.env.example`), then:
 
 ```bash
 pip install openai python-dotenv
-python scripts/generate_typed_pairs.py openai \
+python scripts/gen/generate_typed_pairs.py openai \
   --providers deepseek,kimi,minimax,glm \
   --output data/instructions/more_types_pairs.jsonl \
   --per-template 10
@@ -99,10 +99,10 @@ Each active provider only sees **its** id range.
 
 ### 3) Merge into training JSONL
 
-[`scripts/build_instructions.py`](../scripts/build_instructions.py) accepts **multiple** `--typed-jsonl` paths (repeat flag or comma-separated):
+[`scripts/data/build_instructions.py`](../scripts/data/build_instructions.py) accepts **multiple** `--typed-jsonl` paths (repeat flag or comma-separated):
 
 ```bash
-python scripts/build_instructions.py \
+python scripts/data/build_instructions.py \
   --typed-jsonl data/instructions/typed_pairs.jsonl \
   --typed-jsonl data/instructions/more_types_pairs.jsonl \
   --stats

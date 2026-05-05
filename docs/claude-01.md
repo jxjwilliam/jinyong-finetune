@@ -26,10 +26,10 @@ bf16 on Ampere (4090) is faster, numerically stabler for Chinese LLMs, and avoid
 ## 1. Script Execution Order on AutoDL
 
 ```
-Step 1  clean_text.py          data/raw/*.txt → data/processed/
+Step 1  scripts/data/clean_text.py          data/raw/*.txt → data/processed/
 Step 2  generate_typed_pairs.py               → data/instructions/typed_pairs.jsonl
-Step 3  build_instructions.py                 → data/instructions/jinyong_sft.jsonl
-Step 4  train.py                              → outputs/jinyong-qlora/adapter/
+Step 3  scripts/data/build_instructions.py                 → data/instructions/jinyong_sft.jsonl
+Step 4  scripts/train/train.py                              → outputs/jinyong-qlora/adapter/
 ```
 
 Exact commands:
@@ -38,23 +38,23 @@ Exact commands:
 cd /root/autodl-tmp/jinyong-finetune
 
 # Step 1 — clean novels
-python scripts/clean_text.py --src data/raw --dst data/processed --dry-run
-python scripts/clean_text.py --src data/raw --dst data/processed
+python scripts/data/clean_text.py --src data/raw --dst data/processed --dry-run
+python scripts/data/clean_text.py --src data/raw --dst data/processed
 
 # Step 2 — generate typed pairs via Claude API
 export ANTHROPIC_API_KEY=sk-ant-...
-python scripts/generate_typed_pairs.py claude \
+python scripts/gen/generate_typed_pairs.py claude \
     --output data/instructions/typed_pairs.jsonl \
     --per-template 20 \
     --dry-run   # verify first, remove flag to actually write
 
 # Step 3 — build combined JSONL
-python scripts/build_instructions.py \
+python scripts/data/build_instructions.py \
     --typed-jsonl data/instructions/typed_pairs.jsonl \
     --stats       # verify counts, then remove --dry-run
     
 # Step 4 — train (background, log to file)
-nohup python scripts/train.py --config configs/qlora_config.yaml \
+nohup python scripts/train/train.py --config configs/qlora_config.yaml \
     > train.log 2>&1 &
 
 tail -f train.log
@@ -70,10 +70,10 @@ tail -f train.log
 
 ```bash
 # Dry run — 1 sample per template, prints output, costs ~$0.01
-python scripts/generate_typed_pairs.py claude --dry-run
+python scripts/gen/generate_typed_pairs.py claude --dry-run
 
 # Full run — e.g. many samples × templates in claude bucket — tune --per-template
-python scripts/generate_typed_pairs.py claude \
+python scripts/gen/generate_typed_pairs.py claude \
     --output data/instructions/typed_pairs.jsonl \
     --per-template 20 \
     --sleep 0.5   # increase if you hit rate limits
@@ -107,12 +107,12 @@ These are the root causes of the previous failure (model reproducing original te
 
 **C. Eval loss as early warning** — With `eval_steps: 100` and 5% val split, watch for eval loss diverging from train loss after step ~200. If it does, your typed pairs are too few — add more via `--per-template 40`.
 
-**D. Token length sanity check** — `train.py` already prints sample token lengths. Confirm none are truncated — 300-char Chinese chunks should be ~400-650 tokens, well within 1024.
+**D. Token length sanity check** — `scripts/train/train.py` already prints sample token lengths. Confirm none are truncated — 300-char Chinese chunks should be ~400-650 tokens, well within 1024.
 
-**E. TRL version compatibility** — One latent issue in `train.py`:
+**E. TRL version compatibility** — One latent issue in `scripts/train/train.py`:
 
 ```python
-# train.py — SFTConfig uses deprecated parameter name in TRL ≥ 0.12
+# scripts/train/train.py — SFTConfig uses deprecated parameter name in TRL ≥ 0.12
 # Change:
 evaluation_strategy="steps",
 # To:
@@ -129,9 +129,9 @@ Check with `pip show trl | grep Version` and update accordingly.
 |---|---|---|
 | bf16/fp16 flip | qlora_config.yaml | Already described above |
 | Model string | generate_typed_pairs.py | Use `claude-haiku-4-5-20251001` |
-| `evaluation_strategy` → `eval_strategy` | train.py L189 | TRL ≥ 0.12 deprecation |
-| `dataset_text_field` deprecated | train.py L195 | Use `formatting_func` in TRL ≥ 0.13 |
-| No eval JSONL output | train.py | Save val split to disk for manual inspection after training |
+| `evaluation_strategy` → `eval_strategy` | scripts/train/train.py L189 | TRL ≥ 0.12 deprecation |
+| `dataset_text_field` deprecated | scripts/train/train.py L195 | Use `formatting_func` in TRL ≥ 0.13 |
+| No eval JSONL output | scripts/train/train.py | Save val split to disk for manual inspection after training |
 | generate_typed_pairs doesn't deduplicate | generate_typed_pairs.py | Add a set-based dedup before writing JSONL |
 
 The two that matter most for output quality: bf16 switch (training stability) and `eval_strategy` rename (otherwise eval silently doesn't run and you're flying blind on overfitting).

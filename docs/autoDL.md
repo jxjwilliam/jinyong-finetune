@@ -1,6 +1,6 @@
 # AutoDL cloud runbook
 
-This guide focuses on **[AutoDL](https://www.autodl.com)** (Jupyter + SSH) for **QLoRA** fine-tuning of **`Qwen/Qwen2.5-7B-Instruct`** in this repo. Hyperparameters and paths are defined in **`configs/qlora_config.yaml`**; training code is **`scripts/train.py`**.
+This guide focuses on **[AutoDL](https://www.autodl.com)** (Jupyter + SSH) for **QLoRA** fine-tuning of **`Qwen/Qwen2.5-7B-Instruct`** in this repo. Hyperparameters and paths are defined in **`configs/qlora_config.yaml`**; training code is **`scripts/train/train.py`**.
 
 ## What you get on the instance
 
@@ -35,7 +35,7 @@ Use **HTTPS** or **SSH** depending on your Git host. All following commands assu
 
 ## 3. Python environment (CUDA)
 
-AutoDL images usually ship a **CUDA-enabled PyTorch**. Install the training stack (unpinned versions track current `train.py` / TRL APIs):
+AutoDL images usually ship a **CUDA-enabled PyTorch**. Install the training stack (unpinned versions track current `scripts/train/train.py` / TRL APIs):
 
 ```bash
 pip install -U bitsandbytes accelerate peft transformers datasets trl pyyaml
@@ -65,8 +65,8 @@ export HF_ENDPOINT=https://hf-mirror.com
 Writes cleaned novels to **`data.processed_txt_dir`** (usually `data/processed`):
 
 ```bash
-python scripts/clean_text.py --dry-run   # stats only
-python scripts/clean_text.py             # write processed/*.txt
+python scripts/data/clean_text.py --dry-run   # stats only
+python scripts/data/clean_text.py             # write processed/*.txt
 ```
 
 ---
@@ -78,23 +78,23 @@ Paths default from **`configs/qlora_config.yaml`** (`data.instruction_jsonl`, `d
 **Preview counts only (does not write the JSONL):**
 
 ```bash
-python scripts/build_instructions.py --dry-run --stats
+python scripts/data/build_instructions.py --dry-run --stats
 ```
 
 **Write the JSONL** (merge **`typed_pairs.jsonl`** if that file exists):
 
 ```bash
 # Optional: API-generated typed scenes (see README)
-# python scripts/generate_typed_pairs.py claude --output data/instructions/typed_pairs.jsonl
+# python scripts/gen/generate_typed_pairs.py claude --output data/instructions/typed_pairs.jsonl
 
-python scripts/build_instructions.py --typed-jsonl data/instructions/typed_pairs.jsonl --stats
+python scripts/data/build_instructions.py --typed-jsonl data/instructions/typed_pairs.jsonl --stats
 # Multiple typed files (merged and shuffled together):
-# python scripts/build_instructions.py \
+# python scripts/data/build_instructions.py \
 #   --typed-jsonl data/instructions/typed_pairs.jsonl \
 #   --typed-jsonl data/instructions/more_types_deepseek.jsonl \
 #   --stats
 # If you have no typed_pairs file, omit --typed-jsonl:
-# python scripts/build_instructions.py --stats
+# python scripts/data/build_instructions.py --stats
 ```
 
 **Note:** `build_instructions.py --stats` **without** `--dry-run` **will write** the output file.
@@ -104,11 +104,11 @@ python scripts/build_instructions.py --typed-jsonl data/instructions/typed_pairs
 ## 7. Train (QLoRA)
 
 ```bash
-python scripts/train.py --config configs/qlora_config.yaml
+python scripts/train/train.py --config configs/qlora_config.yaml
 ```
 
 - Uses **bf16** + **4-bit NF4** + **LoRA** as in the YAML; **`packing: false`** is required for correct ChatML formatting.
-- Gradient checkpointing is enabled in YAML; **`train.py`** calls **`enable_input_require_grads()`** so LoRA gradients flow correctly with checkpointing.
+- Gradient checkpointing is enabled in YAML; **`scripts/train/train.py`** calls **`enable_input_require_grads()`** so LoRA gradients flow correctly with checkpointing.
 
 **Artifacts:** `outputs/jinyong-qlora/adapter/` (adapter + tokenizer). Zip for download:
 
@@ -123,19 +123,19 @@ cd outputs && zip -r jinyong-adapter.zip jinyong-qlora/adapter/
 `llama.cpp` conversion needs a **merged** full model, not the adapter alone. On the same GPU host (about one 24 GB card for 7B bf16/fp16):
 
 ```bash
-python scripts/merge_lora.py --config configs/qlora_config.yaml
+python scripts/train/merge_lora.py --config configs/qlora_config.yaml
 ```
 
 If **`huggingface.co`** is unreachable (**Errno 101**), use a mirror or stay offline (base must already be cached from training):
 
 ```bash
 export HF_ENDPOINT=https://hf-mirror.com
-python scripts/merge_lora.py --config configs/qlora_config.yaml
+python scripts/train/merge_lora.py --config configs/qlora_config.yaml
 # or inline:
-python scripts/merge_lora.py --config configs/qlora_config.yaml --hf-endpoint https://hf-mirror.com
+python scripts/train/merge_lora.py --config configs/qlora_config.yaml --hf-endpoint https://hf-mirror.com
 
-# Fully offline — point at the hub snapshot directory (see scripts/merge_lora.py --help)
-python scripts/merge_lora.py --config configs/qlora_config.yaml --local-files-only \
+# Fully offline — point at the hub snapshot directory (see scripts/train/merge_lora.py --help)
+python scripts/train/merge_lora.py --config configs/qlora_config.yaml --local-files-only \
   --base-model-path ~/.cache/huggingface/hub/models--Qwen--Qwen2.5-7B-Instruct/snapshots/<hash>
 ```
 
@@ -154,13 +154,13 @@ Further steps (SCP to Mac, **convert_hf_to_gguf.py**, Ollama): **`docs/LORA_TO_G
 | Notebook | Role |
 |----------|------|
 | **`notebooks/01_data_prep.ipynb`** | Resolve repo root, `clean_text`, preview (`--dry-run --stats`) vs write `build_instructions`, sample JSONL from YAML path |
-| **`notebooks/02_train.ipynb`** | GPU check, pip installs, optional Kaggle download, data pipeline, **`train.py`** (streaming logs, no `capture_output` trap) |
+| **`notebooks/02_train.ipynb`** | GPU check, pip installs, optional Kaggle download, data pipeline, **`scripts/train/train.py`** (streaming logs, no `capture_output` trap) |
 | **`notebooks/03_inference.ipynb`** | Load 4-bit base + adapter for smoke tests (CUDA required) |
 
 Use the same **`configs/qlora_config.yaml`** as the CLI. In a cell:
 
 ```python
-!python scripts/merge_lora.py --config configs/qlora_config.yaml
+!python scripts/train/merge_lora.py --config configs/qlora_config.yaml
 ```
 
 ---
@@ -177,11 +177,11 @@ Use the same **`configs/qlora_config.yaml`** as the CLI. In a cell:
 1. [ ] Repo cloned under `/root/autodl-tmp/...`, shell at repo root  
 2. [ ] `pip install …` bitsandbytes, accelerate, peft, transformers, datasets, trl, pyyaml (+ torch if needed)  
 3. [ ] `data/raw/*.txt` present  
-4. [ ] `python scripts/clean_text.py`  
-5. [ ] `python scripts/build_instructions.py --dry-run --stats` then write with `… --stats` (and `--typed-jsonl` if you have typed pairs)  
-6. [ ] `python scripts/train.py --config configs/qlora_config.yaml`  
+4. [ ] `python scripts/data/clean_text.py`  
+5. [ ] `python scripts/data/build_instructions.py --dry-run --stats` then write with `… --stats` (and `--typed-jsonl` if you have typed pairs)  
+6. [ ] `python scripts/train/train.py --config configs/qlora_config.yaml`  
 7. [ ] Zip **`outputs/jinyong-qlora/adapter/`**  
-8. [ ] (Optional) `python scripts/merge_lora.py` → zip **`outputs/jinyong-merged/`**  
+8. [ ] (Optional) `python scripts/train/merge_lora.py` → zip **`outputs/jinyong-merged/`**  
 9. [ ] Download zips before stopping the instance  
 
 ---

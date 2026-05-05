@@ -11,7 +11,7 @@ Primary training target: **[AutoDL](https://www.autodl.com)** instances with **N
 ## Environment
 
 - Typical project path: `/root/autodl-tmp/jinyong-finetune` (clone or `scp` the repo there; Jupyter often starts under this tree).
-- **CUDA + bitsandbytes** are required for 4-bit QLoRA in `scripts/train.py`.
+- **CUDA + bitsandbytes** are required for 4-bit QLoRA in `scripts/train/train.py`.
 - If **Hugging Face Hub** is slow or blocked, set before first model download: `HF_ENDPOINT=https://hf-mirror.com` (or use a local / ModelScope cache — document any mirror in the user’s runbook, not as hardcoded paths in code).
 
 ## Single source of truth
@@ -22,14 +22,14 @@ Primary training target: **[AutoDL](https://www.autodl.com)** instances with **N
 
 ## Script order (data → train)
 
-1. `python scripts/clean_text.py` — `data/raw/*.txt` → `data/processed/*.txt` (dirs from YAML unless overridden).
-2. Optional but recommended: typed pairs JSONL via **`scripts/generate_typed_pairs.py`**:  
+1. `python scripts/data/clean_text.py` — `data/raw/*.txt` → `data/processed/*.txt` (dirs from YAML unless overridden).
+2. Optional but recommended: typed pairs JSONL via **`scripts/gen/generate_typed_pairs.py`**:  
    `… claude …` (`ANTHROPIC_API_KEY`; `pip install anthropic`) **or**  
    `… openai --providers deepseek,kimi,…` (keys in `.env`; MiniMax China default `https://api.minimaxi.com/v1`; `pip install openai python-dotenv`).  
    Pass **multiple** `--typed-jsonl` paths to **`build_instructions.py`** (no manual `cat`).
-3. Preview: `python scripts/build_instructions.py --dry-run --stats`. Write JSONL: `python scripts/build_instructions.py --stats` (add `--typed-jsonl path.jsonl` if you generated typed pairs).
-4. `python scripts/train.py --config configs/qlora_config.yaml` — writes **`outputs/jinyong-qlora/adapter/`** (LoRA only, not full merged weights).
-5. Optional on the same GPU host: `python scripts/merge_lora.py --config configs/qlora_config.yaml` — full-precision merged HF dir (default **`outputs/jinyong-merged/`**) for GGUF export; see **`docs/LORA_TO_GGUF_GUIDE.md`**.
+3. Preview: `python scripts/data/build_instructions.py --dry-run --stats`. Write JSONL: `python scripts/data/build_instructions.py --stats` (add `--typed-jsonl path.jsonl` if you generated typed pairs).
+4. `python scripts/train/train.py --config configs/qlora_config.yaml` — writes **`outputs/jinyong-qlora/adapter/`** (LoRA only, not full merged weights).
+5. Optional on the same GPU host: `python scripts/train/merge_lora.py --config configs/qlora_config.yaml` — full-precision merged HF dir (default **`outputs/jinyong-merged/`**) for GGUF export; see **`docs/LORA_TO_GGUF_GUIDE.md`**.
 
 Run from **repo root** so imports and relative paths resolve (`python scripts/...`).
 
@@ -41,7 +41,7 @@ Run from **repo root** so imports and relative paths resolve (`python scripts/..
 ## After training
 
 - Zip or `scp` **`outputs/jinyong-qlora/adapter/`** (and tokenizer files there) off the instance.
-- Full merged HF weights: **`scripts/merge_lora.py`** on AutoDL, then zip **`outputs/jinyong-merged/`** (or your **`--merged-dir`**). GGUF / Ollama: **`docs/LORA_TO_GGUF_GUIDE.md`**.
+- Full merged HF weights: **`scripts/train/merge_lora.py`** on AutoDL, then zip **`outputs/jinyong-merged/`** (or your **`--merged-dir`**). GGUF / Ollama: **`docs/LORA_TO_GGUF_GUIDE.md`**.
 
 ## Alternatives (not AutoDL)
 

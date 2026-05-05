@@ -7,9 +7,10 @@ import sys
 from pathlib import Path
 from typing import Any, Iterable
 
-_script_dir = Path(__file__).resolve().parent
-if str(_script_dir) not in sys.path:
-    sys.path.insert(0, str(_script_dir))
+_repo_root = Path(__file__).resolve().parents[2]
+_lib = _repo_root / "scripts" / "lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
 
 try:
     from clean_text import clean_novel
@@ -179,7 +180,7 @@ def main() -> None:
         print(f"Typed pairs total (valid): {len(typed_valid):,} (from {raw_total:,} raw rows)")
     else:
         print("\n[info] No --typed-jsonl provided. Only continuation pairs will be used.")
-        print("       Run scripts/generate_typed_pairs.py claude|openai … (see docs/TYPED_PAIRS_PIPELINE.md).")
+        print("       Run scripts/gen/generate_typed_pairs.py claude|openai … (see docs/TYPED_PAIRS_PIPELINE.md).")
 
     combined = cont_valid + typed_valid
 

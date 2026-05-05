@@ -2,7 +2,7 @@
 # 金庸微调模型本地部署指南
 
 > **Stack:** AutoDL RTX 4090 → SCP → MacBook M3 Pro → llama.cpp → Ollama  
-> **Prerequisite:** Retrain completed with fixed `train.py` + `qlora_config.yaml`  
+> **Prerequisite:** Retrain completed with fixed `scripts/train/train.py` + `qlora_config.yaml`  
 > **llama.cpp:** Already compiled at `~/my-tools/llama.cpp`
 
 ---
@@ -44,7 +44,7 @@ From the repo root (SSH or Jupyter), same paths as training:
 ```bash
 cd /root/autodl-tmp/jinyong-finetune
 export HF_ENDPOINT=https://hf-mirror.com
-python scripts/merge_lora.py --config configs/qlora_config.yaml
+python scripts/train/merge_lora.py --config configs/qlora_config.yaml
 ```
 
 This reads **`configs/qlora_config.yaml`** for the base model id and adapter directory (**`outputs/jinyong-qlora/adapter`** by default) and writes **`outputs/jinyong-merged/`** (override with **`--merged-dir`** / **`--dtype float16`** if needed). See **`docs/autoDL.md`** for the full AutoDL runbook.
@@ -273,7 +273,7 @@ Score each output on these 5 dimensions (1–5 each, max 25):
 | 画面感 | Visually translatable — can you picture it as a video shot? |
 | 原创性 | No recognizable scenes from original novels |
 
-Target: fine-tuned score ≥ base model on 文风典雅 and 武功描写. If base wins on all 5, the fine-tune needs more typed pairs — run `scripts/generate_typed_pairs.py` (`claude` or `openai`); see **`docs/TYPED_PAIRS_PIPELINE.md`**.
+Target: fine-tuned score ≥ base model on 文风典雅 and 武功描写. If base wins on all 5, the fine-tune needs more typed pairs — run `scripts/gen/generate_typed_pairs.py` (`claude` or `openai`); see **`docs/TYPED_PAIRS_PIPELINE.md`**.
 
 ---
 

@@ -12,10 +12,10 @@ Subcommands:
 Examples::
 
     export ANTHROPIC_API_KEY=...
-    python scripts/generate_typed_pairs.py claude --output data/instructions/typed_pairs.jsonl --dry-run
+    python scripts/gen/generate_typed_pairs.py claude --output data/instructions/typed_pairs.jsonl --dry-run
 
     pip install openai python-dotenv
-    python scripts/generate_typed_pairs.py openai --providers deepseek,kimi --output data/instructions/more_types_pairs.jsonl
+    python scripts/gen/generate_typed_pairs.py openai --providers deepseek,kimi --output data/instructions/more_types_pairs.jsonl
 
 See ``docs/TYPED_PAIRS_PIPELINE.md``.
 """
@@ -29,9 +29,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-_script_dir = Path(__file__).resolve().parent
-if str(_script_dir) not in sys.path:
-    sys.path.insert(0, str(_script_dir))
+_repo_root = Path(__file__).resolve().parents[2]
+_lib = _repo_root / "scripts" / "lib"
+if str(_lib) not in sys.path:
+    sys.path.insert(0, str(_lib))
 
 from instruction_jsonl import (
     count_nonempty_jsonl_lines,
@@ -135,7 +136,7 @@ def run_claude(args: argparse.Namespace) -> None:
 
     print(f"\nWrote {written_session:,} new typed pairs this run → {out_path}")
     print(
-        "Next: python scripts/build_instructions.py --typed-jsonl "
+        "Next: python scripts/data/build_instructions.py --typed-jsonl "
         f"{out_path} --stats\n"
         "      (repeat --typed-jsonl for each generator output before --stats)"
     )
@@ -398,7 +399,7 @@ def run_openai(args: argparse.Namespace) -> None:
     print(f"\nSaved {n_saved:,} pairs → {out_path}")
     print(
         "Merge example:\n"
-        f"  python scripts/build_instructions.py --typed-jsonl {out_path} "
+        f"  python scripts/data/build_instructions.py --typed-jsonl {out_path} "
         "--typed-jsonl data/instructions/typed_pairs.jsonl --stats"
     )
 

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 LLAMA_DIR="${LLAMA_DIR:-${HOME}/my-tools/llama.cpp}"
 MODELS_DIR="${MODELS_DIR:-${REPO_ROOT}/models}"
 MERGED_DIR="${1:-${REPO_ROOT}/outputs/jinyong-merged}"
@@ -18,7 +18,7 @@ QUANT_BIN="${LLAMA_DIR}/llama-quantize"
 usage() {
   cat <<'EOF'
 Usage:
-  scripts/gguf.sh [MERGED_DIR]
+  scripts/export/gguf.sh [MERGED_DIR]
 
 Defaults:
   MERGED_DIR = ./outputs/jinyong-merged

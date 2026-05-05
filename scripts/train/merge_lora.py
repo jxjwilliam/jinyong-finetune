@@ -7,9 +7,9 @@ Use on AutoDL after training writes ``outputs/jinyong-qlora/adapter/`` (paths fr
 
 From repo root in Jupyter::
 
-    !python scripts/merge_lora.py --config configs/qlora_config.yaml
+    !python scripts/train/merge_lora.py --config configs/qlora_config.yaml
 
-Or: ``%run scripts/merge_lora.py --config configs/qlora_config.yaml``
+Or: ``%run scripts/train/merge_lora.py --config configs/qlora_config.yaml``
 
 VRAM: Qwen2.5-7B in bf16/fp16 needs about one 24GB GPU for load+merge+save; if OOM,
 pass ``--dtype float16``.
@@ -20,11 +20,11 @@ If Hugging Face is unreachable (**Errno 101** / timeouts on AutoDL mainland), ei
 
 (or ``--hf-endpoint https://hf-mirror.com``), then rerun, or merge fully offline::
 
-    python scripts/merge_lora.py --config configs/qlora_config.yaml \\
+    python scripts/train/merge_lora.py --config configs/qlora_config.yaml \\
         --local-files-only \\
         --base-model-path ~/.cache/huggingface/hub/models--Qwen--Qwen2.5-7B-Instruct/snapshots/<hash>
 
-(Use the snapshot directory under ``hub/`` after a successful ``train.py`` download.)
+(Use the snapshot directory under ``hub/`` after a successful ``scripts/train/train.py`` download.)
 """
 from __future__ import annotations
 
@@ -150,7 +150,7 @@ def main() -> None:
     if not adapter_path.is_dir():
         raise FileNotFoundError(
             f"Adapter directory not found: {adapter_path}\n"
-            "Train first (scripts/train.py) or pass --adapter /path/to/adapter"
+            "Train first (scripts/train/train.py) or pass --adapter /path/to/adapter"
         )
 
     merged_dir.mkdir(parents=True, exist_ok=True)

@@ -18,7 +18,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--config", default="configs/qlora_config.yaml", help="Path to config file.")
     parser.add_argument("--model-dir", default=None, help="Path to merged HF model directory.")
     parser.add_argument("--llama-cpp-dir", default=None, help="Path to llama.cpp directory (contains convert_hf_to_gguf.py).")
-    parser.add_argument("--quantize", default="q4_k_m", help="GGUF quantization type (e.g., q4_k_m, q8_0, f16).")
+    parser.add_argument(
+        "--quantize",
+        default="f16",
+        help="convert_hf_to_gguf --outtype (default f16 per docs/LORA_TO_GGUF_GUIDE.md; use q4_k_m only if you skip llama-quantize).",
+    )
     parser.add_argument("--skip-convert", action="store_true", help="Skip conversion, only build Ollama Modelfile.")
     return parser.parse_args()
 

@@ -17,33 +17,33 @@ pip install -r requirements.txt
 
 ```bash
 # Clean raw novel text (defaults from configs/qlora_config.yaml data.raw_txt_dir / processed_txt_dir)
-python scripts/clean_text.py
-python scripts/clean_text.py --dry-run
+python scripts/data/clean_text.py
+python scripts/data/clean_text.py --dry-run
 
 # Build instruction pairs: continuation windows + typed scene templates (defaults: data/processed → JSONL path in YAML)
-python scripts/build_instructions.py --stats
-python scripts/build_instructions.py --dry-run --stats
-python scripts/build_instructions.py --chunk-size 300 --overlap 100
+python scripts/data/build_instructions.py --stats
+python scripts/data/build_instructions.py --dry-run --stats
+python scripts/data/build_instructions.py --chunk-size 300 --overlap 100
 
 # Optional typed scenes → JSONL (`docs/TYPED_PAIRS_PIPELINE.md`)
-python scripts/generate_typed_pairs.py claude --dry-run
-python scripts/generate_typed_pairs.py openai --dry-run
+python scripts/gen/generate_typed_pairs.py claude --dry-run
+python scripts/gen/generate_typed_pairs.py openai --dry-run
 
 # Train (all hyperparameters come from the YAML config)
-python scripts/train.py --config configs/qlora_config.yaml
+python scripts/train/train.py --config configs/qlora_config.yaml
 ```
 
-`build_instructions.py` optionally imports `clean_novel` when `--apply-clean` is set. Run `python scripts/…` from the repo root so `scripts/` is on `sys.path`, or use the notebooks (they `chdir` to the repo root).
+`scripts/data/build_instructions.py` optionally imports `clean_novel` when `--apply-clean` is set. Run `python scripts/…` from the repo root (paths are relative to the repo), or use the notebooks (they `chdir` to the repo root).
 
 ## Architecture & Data Flow
 
 ```
 data/raw/*.txt
-  → scripts/clean_text.py        strips headers, HTML, fullwidth spaces, normalizes whitespace
+  → scripts/data/clean_text.py        strips headers, HTML, fullwidth spaces, normalizes whitespace
   → data/processed/*.txt         (optional intermediate)
-  → scripts/build_instructions.py  sliding-window continuations (chunk=300, overlap=100) + typed scene pairs (~100 templates from `configs/jinyong_template.json`, optional multi-`--typed-jsonl`)
+  → scripts/data/build_instructions.py  sliding-window continuations (chunk=300, overlap=100) + typed scene pairs (~100 templates from `configs/jinyong_template.json`, optional multi-`--typed-jsonl`)
   → data/instructions/jinyong_sft.jsonl   {instruction, input, output} rows
-  → scripts/train.py             loads YAML config, 4-bit Qwen2.5-7B, QLoRA r=64
+  → scripts/train/train.py             loads YAML config, 4-bit Qwen2.5-7B, QLoRA r=64
   → outputs/jinyong-qlora/adapter/        saved LoRA adapter (not full weights)
 ```
 
@@ -53,7 +53,7 @@ data/raw/*.txt
 ```
 
 ### Training config (`configs/qlora_config.yaml`)
-Single source of truth for all hyperparameters — no inline constants in `train.py`. Typical values (4090-focused default): `r=64`, `lora_alpha=128`, `per_device_train_batch_size=4`, `gradient_accumulation_steps=4` (effective batch=16), `learning_rate=2e-4`, `max_seq_length=1024`, `fp16=false`, `bf16=true`, `packing=false`, `eval_split_ratio=0.05`.
+Single source of truth for all hyperparameters — no inline constants in `scripts/train/train.py`. Typical values (4090-focused default): `r=64`, `lora_alpha=128`, `per_device_train_batch_size=4`, `gradient_accumulation_steps=4` (effective batch=16), `learning_rate=2e-4`, `max_seq_length=1024`, `fp16=false`, `bf16=true`, `packing=false`, `eval_split_ratio=0.05`.
 
 ### ChatML prompt format
 ```
@@ -81,6 +81,6 @@ Single source of truth for all hyperparameters — no inline constants in `train
 
 | Notebook | Purpose |
 |---|---|
-| `notebooks/01_data_prep.ipynb` | Resolves repo root; `clean_text.py` / `build_instructions.py` |
-| `notebooks/02_train.ipynb` | AutoDL-oriented GPU setup + same `train.py` + YAML as CLI |
+| `notebooks/01_data_prep.ipynb` | Resolves repo root; `scripts/data/clean_text.py` / `scripts/data/build_instructions.py` |
+| `notebooks/02_train.ipynb` | AutoDL-oriented GPU setup + same `scripts/train/train.py` + YAML as CLI |
 | `notebooks/03_inference.ipynb` | Loads base tokenizer for generation testing |
