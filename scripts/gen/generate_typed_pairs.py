@@ -50,6 +50,28 @@ from typed_prompts import (
     typed_user_turn,
 )
 
+
+def load_yaml(path: Path) -> dict:
+    try:
+        import yaml
+    except ModuleNotFoundError:
+        return {}
+    if not path.is_file():
+        return {}
+    with path.open("r", encoding="utf-8") as fh:
+        return yaml.safe_load(fh) or {}
+
+
+def resolve_per_template(args: argparse.Namespace) -> int:
+    if args.per_template is not None:
+        return int(args.per_template)
+    cfg = load_yaml(Path(args.config))
+    data_cfg = cfg.get("data", {})
+    typed_cfg = data_cfg.get("typed_pairs", {})
+    value = int(typed_cfg.get("per_template", 10))
+    print(f"[config] --per-template not provided, using data.typed_pairs.per_template={value}")
+    return value
+
 # --- Claude backend -----------------------------------------------------------
 
 try:
@@ -93,7 +115,8 @@ def run_claude(args: argparse.Namespace) -> None:
             print(f"[resume] Output file already has {prev_n:,} JSONL rows; appending new pairs.")
         append_fh = out_path.open("a", encoding="utf-8")
 
-    n_per = 1 if args.dry_run else args.per_template
+    per_template = resolve_per_template(args)
+    n_per = 1 if args.dry_run else per_template
     previews = 0
     written_session = 0
 
@@ -159,7 +182,7 @@ def parse_claude(subparsers) -> None:
         choices=sorted(PROVIDER_BUCKETS.keys()),
         help="Template id partition (default claude → ids 1–20).",
     )
-    p.add_argument("--per-template", type=int, default=10)
+    p.add_argument("--per-template", type=int, default=None)
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--sleep", type=float, default=0.3)
 
@@ -358,7 +381,8 @@ def run_openai(args: argparse.Namespace) -> None:
         prev = scenes_for_provider_slug(p.slug, scenes=all_scenes)
         print(f"  - {p.slug}  model={model}  templates={len(prev)} ids")
 
-    n_per = 1 if args.dry_run else args.per_template
+    per_template = resolve_per_template(args)
+    n_per = 1 if args.dry_run else per_template
     pairs: list[dict[str, str]] = []
 
     for p, _model, call in ready:
@@ -421,7 +445,7 @@ def parse_openai(subparsers) -> None:
         "--output",
         default="data/instructions/more_types_pairs.jsonl",
     )
-    p.add_argument("--per-template", type=int, default=10)
+    p.add_argument("--per-template", type=int, default=None)
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--sleep", type=float, default=0.35)
     p.add_argument("--max-tokens", type=int, default=400)
@@ -434,6 +458,11 @@ def main() -> None:
             "Generate typed Jin Yong scene pairs → JSONL. "
             "Use subcommand `claude` or `openai`."
         )
+    )
+    parser.add_argument(
+        "--config",
+        default="configs/qlora_config.yaml",
+        help="Config path used for per-template fallback.",
     )
     sub = parser.add_subparsers(dest="backend", required=True)
     parse_claude(sub)

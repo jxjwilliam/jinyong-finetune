@@ -19,6 +19,7 @@ except ImportError:
         return text
 
 from instruction_jsonl import Pair, load_pairs_jsonl, pair_to_json_obj
+from dedup_pairs import dedup_continuation_pairs
 
 DEFAULT_INSTRUCTION = "以金庸武侠小说的风格，续写以下段落："
 
@@ -112,6 +113,23 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--apply-clean", action="store_true")
     parser.add_argument("--max-pairs", type=int, default=None)
     parser.add_argument(
+        "--dedup-continuation",
+        action="store_true",
+        help="Apply MinHash LSH deduplication to continuation pairs before merging typed pairs.",
+    )
+    parser.add_argument(
+        "--dedup-threshold",
+        type=float,
+        default=0.85,
+        help="MinHash LSH similarity threshold for continuation deduplication.",
+    )
+    parser.add_argument(
+        "--min-typed-ratio",
+        type=float,
+        default=None,
+        help="Minimum typed pairs ratio (typed/total). Overrides config data.typed_pairs.min_ratio_vs_continuation.",
+    )
+    parser.add_argument(
         "--seed",
         type=int,
         default=None,
@@ -130,15 +148,19 @@ def main() -> None:
     default_out = "data/instructions/jinyong_sft.jsonl"
     eval_ratio = 0.05
     seed = args.seed if args.seed is not None else 42
+    min_typed_ratio = args.min_typed_ratio if args.min_typed_ratio is not None else 0.0
 
     if config_path.is_file():
         cfg = load_yaml(config_path)
         if cfg:
             data_cfg = cfg.get("data") or {}
             train_cfg = cfg.get("training") or {}
+            typed_cfg = data_cfg.get("typed_pairs") or {}
             default_in = data_cfg.get("processed_txt_dir") or default_in
             default_out = data_cfg.get("instruction_jsonl") or default_out
             eval_ratio = float(train_cfg.get("eval_split_ratio", eval_ratio))
+            if args.min_typed_ratio is None:
+                min_typed_ratio = float(typed_cfg.get("min_ratio_vs_continuation", min_typed_ratio))
             if args.seed is None:
                 seed = int(train_cfg.get("seed", seed))
 
@@ -163,6 +185,21 @@ def main() -> None:
 
     cont_pairs = continuation_pairs(all_segments)
     cont_valid = validate_pairs(cont_pairs, args.min_output_chars)
+    dedup_report: dict[str, Any] | None = None
+    if args.dedup_continuation:
+        deduped, dedup_stats = dedup_continuation_pairs(
+            cont_valid,
+            threshold=args.dedup_threshold,
+            num_perm=128,
+        )
+        dedup_report = {
+            "before": dedup_stats.before,
+            "after": dedup_stats.after,
+            "removed": dedup_stats.removed,
+            "removed_ratio": round(dedup_stats.removed_ratio, 6),
+            "threshold": args.dedup_threshold,
+        }
+        cont_valid = deduped
 
     typed_valid: list[Pair] = []
     typed_paths = expand_typed_jsonl_paths(args.typed_jsonl)
@@ -192,11 +229,26 @@ def main() -> None:
 
     if args.stats or args.dry_run:
         n_train, n_val = train_val_counts(len(combined), eval_ratio)
+        typed_ratio = (len(typed_valid) / len(combined)) if combined else 0.0
         print(f"\nContinuation pairs : {len(cont_valid):,}")
         print(f"Typed scene pairs  : {len(typed_valid):,}")
         print(f"Total valid pairs  : {len(combined):,}")
+        print(f"Typed ratio        : {typed_ratio:.3f}")
         print(f"Train / Val split  : {n_train:,} / {n_val:,} "
               f"(eval_ratio={eval_ratio}, seed={seed})")
+        if dedup_report is not None:
+            print(
+                f"Dedup report       : before={dedup_report['before']:,}, "
+                f"after={dedup_report['after']:,}, removed={dedup_report['removed']:,} "
+                f"({dedup_report['removed_ratio']:.2%}, threshold={dedup_report['threshold']})"
+            )
+
+    typed_ratio = (len(typed_valid) / len(combined)) if combined else 0.0
+    if min_typed_ratio > 0 and typed_ratio < min_typed_ratio:
+        raise ValueError(
+            f"typed ratio too low: {typed_ratio:.3f} < {min_typed_ratio:.3f}. "
+            "Increase --per-template or add more --typed-jsonl inputs."
+        )
 
     if args.dry_run:
         return
@@ -207,6 +259,14 @@ def main() -> None:
             fh.write(json.dumps(pair_to_json_obj(pair), ensure_ascii=False) + "\n")
 
     print(f"\nSaved -> {output_path}  ({len(combined):,} rows)")
+    if dedup_report is not None:
+        dedup_report_path = Path("outputs/data/dedup_report.json")
+        dedup_report_path.parent.mkdir(parents=True, exist_ok=True)
+        dedup_report_path.write_text(
+            json.dumps(dedup_report, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        print(f"Dedup report -> {dedup_report_path}")
 
 
 if __name__ == "__main__":

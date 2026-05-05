@@ -1,1 +1,6 @@
 kaggle
+datasketch
+fastapi
+uvicorn
+httpx
+sse-starlette

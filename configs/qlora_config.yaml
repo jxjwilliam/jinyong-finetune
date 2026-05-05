@@ -59,3 +59,28 @@ data:
   raw_txt_dir: "data/raw"
   processed_txt_dir: "data/processed"
   system_prompt: "你是一位精通金庸武侠风格的写作助手。请根据用户的要求，创作符合金庸武侠小说风格的原创内容。文笔典雅，人物鲜明，江湖气息浓厚。不要复述原著情节，创作全新场景。"
+  typed_pairs:
+    per_template: 50
+    min_ratio_vs_continuation: 0.30
+
+eval:
+  prompts_jsonl: "scripts/eval/prompts_v2_typed20.jsonl"
+  output_dir: "outputs/eval"
+  judge_model: "gpt-4o"
+  gate_min_avg: 4.0
+  gate_max_drop: 0.2
+
+dpo:
+  enabled: false
+  beta: 0.1
+  samples_per_prompt: 2
+  judge_model: "gpt-4o"
+  prompt_set: "scripts/eval/prompts_v2_typed20.jsonl"
+  preference_jsonl: "outputs/dpo/preferences.jsonl"
+  output_dir: "outputs/jinyong-dpo"
+  per_device_train_batch_size: 2
+  gradient_accumulation_steps: 4
+  learning_rate: 5.0e-5
+  num_train_epochs: 1
+  max_length: 1024
+  max_prompt_length: 512

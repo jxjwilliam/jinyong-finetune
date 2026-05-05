@@ -97,12 +97,74 @@ Use this end-to-end sequence if you want a single checklist from raw text to dep
 2. Place source novels under **`data/raw/`**.
 3. Normalize text with **`python scripts/data/clean_text.py`**.
 4. Build continuation-style SFT data with **`python scripts/data/build_instructions.py --stats`**.
+   For better quality, enable near-duplicate removal on continuation pairs:
+   **`python scripts/data/build_instructions.py --dedup-continuation --dedup-threshold 0.85 --stats`**.
 5. (Optional) Generate typed scene pairs with **`scripts/gen/generate_typed_pairs.py`** and merge via one or more `--typed-jsonl` flags in **`scripts/data/build_instructions.py`**.
 6. Train LoRA adapter with **`python scripts/train/train.py --config configs/qlora_config.yaml`**.
 7. Validate generation using **`notebooks/03_inference.ipynb`** or your local inference script.
-8. (Optional) Merge LoRA into full HF weights using **`python scripts/train/merge_lora.py --config configs/qlora_config.yaml`**.
-9. (Optional) Export to GGUF/Ollama using **`docs/LORA_TO_GGUF_GUIDE.md`**.
-10. Archive/download artifacts from **`outputs/`** before ephemeral cloud instances are recycled.
+   You can also use built-in prompt templates:
+   - List templates: **`python scripts/infer/inference.py --list-templates`**
+   - Render one template: **`python scripts/infer/inference.py --template-id battle_duel_01 --template-slots-json '{"fighter_a":"郭靖","fighter_b":"欧阳锋","weapon_a":"降龙掌","weapon_b":"蛇杖","location":"华山绝顶"}'`**
+8. Run automated quality evaluation (20 typed prompts + GPT judge):
+   **`python scripts/eval/eval_rubric.py --config configs/qlora_config.yaml --run-id <run_id>`**
+9. (Optional) Build DPO preference pairs and run DPO:
+   - **`python scripts/dpo/build_preference_pairs.py --config configs/qlora_config.yaml --max-prompts 20`**
+   - **`python scripts/train/train_dpo.py --config configs/qlora_config.yaml`**
+   - **`python scripts/eval/eval_rubric.py --config configs/qlora_config.yaml --run-id dpo_<run_id>`**
+10. (Optional) Merge LoRA into full HF weights using **`python scripts/train/merge_lora.py --config configs/qlora_config.yaml`**.
+11. (Optional) Export to GGUF/Ollama using **`docs/LORA_TO_GGUF_GUIDE.md`**.
+12. Archive/download artifacts from **`outputs/`** before ephemeral cloud instances are recycled.
+
+## SFT -> DPO Workflow
+
+Recommended staged quality loop:
+
+1. Run SFT and keep a baseline eval result:
+   - `python scripts/train/train.py --config configs/qlora_config.yaml`
+   - `python scripts/eval/eval_rubric.py --config configs/qlora_config.yaml --run-id sft_baseline`
+2. Build DPO preferences from sampled pairs:
+   - `python scripts/dpo/build_preference_pairs.py --config configs/qlora_config.yaml --max-prompts 20`
+3. Train DPO adapter:
+   - `python scripts/train/train_dpo.py --config configs/qlora_config.yaml`
+4. Re-run eval and compare with SFT baseline:
+   - `python scripts/eval/eval_rubric.py --config configs/qlora_config.yaml --run-id dpo_run_001`
+
+The run should be treated as successful only when DPO scores do not regress on the 5-dim rubric.
+
+## Streaming API Usage
+
+Start server:
+
+`python scripts/server/stream_api.py`
+
+### Browser streaming fetch example
+
+```javascript
+const response = await fetch("http://127.0.0.1:8000/v1/generate/stream", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    prompt: "以金庸风格写一段华山夜战",
+    max_tokens: 256,
+    temperature: 0.7
+  })
+});
+const reader = response.body.getReader();
+const decoder = new TextDecoder("utf-8");
+while (true) {
+  const { value, done } = await reader.read();
+  if (done) break;
+  console.log(decoder.decode(value, { stream: true }));
+}
+```
+
+### cURL stream test
+
+```bash
+curl -N -X POST http://127.0.0.1:8000/v1/generate/stream \
+  -H "Content-Type: application/json" \
+  -d '{"prompt":"以金庸风格写一段华山夜战","max_tokens":256,"temperature":0.7}'
+```
 
 ## Quick Start (Kaggle / Colab, optional)
 
@@ -128,3 +190,8 @@ Each JSONL row:
 - Default **`configs/qlora_config.yaml`** is tuned for **RTX 4090** (**bf16**, **`bnb_4bit_compute_dtype: bfloat16`**).
 - **`outputs/`** and raw/processed/instruction datasets are ignored by git.
 - Keep text **UTF-8** encoded.
+- Eval outputs are stored in **`outputs/eval/`** (`eval_results.jsonl` and per-run `summary.json`).
+- Dedup reports are stored in **`outputs/data/dedup_report.json`** when `--dedup-continuation` is enabled.
+- SSE API server is available at **`scripts/server/stream_api.py`**:
+  - Start: **`python scripts/server/stream_api.py`**
+  - Stream endpoint: **`POST /v1/generate/stream`**

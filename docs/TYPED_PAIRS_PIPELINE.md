@@ -57,13 +57,13 @@ flowchart TB
 
 Previously every generator reused the same **20 prose prompts**, so multiple APIs produced overlapping instructions. Now **template ids are partitioned** so each backend owns a disjoint slice (**100 ids total**, **no overlap** across default buckets):
 
-| Bucket    | Template ids | Typical command                                              |
-|-----------|--------------|--------------------------------------------------------------|
-| `claude`  | 1–20         | `python scripts/gen/generate_typed_pairs.py claude …`            |
-| `deepseek` | 21–40       | `… openai --providers deepseek …`                           |
-| `kimi`    | 41–60        | `… openai --providers kimi …`                               |
-| `minimax` | 61–80        | `… openai --providers minimax …`                            |
-| `glm`     | 81–100       | `… openai --providers glm …`                                |
+|Bucket|Template ids|Typical command|
+|---|---|---|
+|`claude`|1-20|`python scripts/gen/generate_typed_pairs.py claude …`|
+|`deepseek`|21-40|`… openai --providers deepseek …`|
+|`kimi`|41-60|`… openai --providers kimi …`|
+|`minimax`|61-80|`… openai --providers minimax …`|
+|`glm`|81-100|`… openai --providers glm …`|
 
 Shared library code:
 
@@ -80,7 +80,7 @@ python scripts/gen/generate_typed_pairs.py claude \
   --output data/instructions/typed_pairs.jsonl \
   --bucket claude \
   --templates-config configs/jinyong_template.json \
-  --per-template 10
+  --per-template 50
 ```
 
 ### 2) DeepSeek / Kimi / MiniMax / GLM (ids 21–100)
@@ -92,7 +92,7 @@ pip install openai python-dotenv
 python scripts/gen/generate_typed_pairs.py openai \
   --providers deepseek,kimi,minimax,glm \
   --output data/instructions/more_types_pairs.jsonl \
-  --per-template 10
+  --per-template 50
 ```
 
 Each active provider only sees **its** id range.
@@ -110,10 +110,14 @@ python scripts/data/build_instructions.py \
 
 Sliding-window **continuation** pairs always come from `data/processed/*.txt`; typed rows from all listed JSONLs are concatenated, validated, then merged into one dataset (respecting **`--seed`** / **`--max-pairs`** on the **combined** list).
 
+Quality target for instruction-following stability:
+
+- keep `typed/total >= 0.30` (enforced by `data.typed_pairs.min_ratio_vs_continuation` in `configs/qlora_config.yaml` by default).
+
 ## Relationship between scripts
 
 | Script | Role |
-|--------|------|
+| --- | --- |
 | `typed_prompts.py` | Template JSON loader, bucket map, system prompt, hints, **`typed_user_turn`**, **`each_typed_sample`** |
 | `instruction_jsonl.py` | **`Pair`** schema + **`load_pairs_jsonl`** / **`typed_pair_dict`** (`build_instructions` reuses **`Pair`**) |
 | `generate_typed_pairs.py` | CLI: **`claude`** \| **`openai`** subcommands → typed JSONL |

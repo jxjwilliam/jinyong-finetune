@@ -5,6 +5,10 @@
 #    pip-compile requirements.in
 #
 attrs==26.1.0
+fastapi
+httpx
+sse-starlette
+uvicorn
     # via
     #   jsonschema
     #   referencing
@@ -80,6 +84,7 @@ traitlets==5.14.3
     #   nbformat
 typing-extensions==4.15.0
     # via referencing
+datasketch
 urllib3==2.6.3
     # via
     #   kaggle
