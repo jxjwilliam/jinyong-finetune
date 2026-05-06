@@ -190,6 +190,7 @@ Each JSONL row:
 - Default **`configs/qlora_config.yaml`** is tuned for **RTX 4090** (**bf16**, **`bnb_4bit_compute_dtype: bfloat16`**).
 - **`outputs/`** and raw/processed/instruction datasets are ignored by git.
 - Keep text **UTF-8** encoded.
+- My two Hugging Face contributions are available at **`jxjwilliam/jinyong-wuxia`** (dataset) and **`jxjwilliam/jinyong-qwen2.5-7b-qlora`** (LoRA adapter): [Dataset](https://huggingface.co/datasets/jxjwilliam/jinyong-wuxia), [Model](https://huggingface.co/jxjwilliam/jinyong-qwen2.5-7b-qlora).
 - Eval outputs are stored in **`outputs/eval/`** (`eval_results.jsonl` and per-run `summary.json`).
 - Dedup reports are stored in **`outputs/data/dedup_report.json`** when `--dedup-continuation` is enabled.
 - SSE API server is available at **`scripts/server/stream_api.py`**:

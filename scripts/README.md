@@ -15,6 +15,7 @@ Run CLIs from the **repository root** so paths like `configs/qlora_config.yaml` 
 | **`export/`** | GGUF / Ollama (`convert_to_gguf.py`, `gguf.sh`, `ollama.sh`). |
 | **`hub/`** | Hugging Face Hub uploads (`upload_adapter_hf.py`, `upload_raw_corpus_hf.py`). |
 | **`shell/`** | Multi-step bash orchestration (`type-pair.sh`). |
+| **top-level `scripts/`** | Utility CLIs that span stages (for example `tts_elevenlabs.py` for ElevenLabs text-to-speech). |
 
 Common local flow:
 
