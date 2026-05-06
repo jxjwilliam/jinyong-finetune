@@ -16,6 +16,10 @@
 - **P1 (high impact):** built-in Jin Yong prompt template library, FastAPI streaming server.
 - **P2 (quality jump):** DPO pass after SFT with GPT-4o pairwise ranking.
 
+Implementation status sync (2026-05-05, local Mac-first):
+- `[x]` completed in repo
+- `[ ]` pending runtime verification on local/AutoDL
+
 ---
 
 ## File Structure Plan
@@ -48,7 +52,7 @@
 - Create: `scripts/eval/eval_results_schema.md`
 - Modify: `README.md`
 
-- [ ] **Step 1: Add the fixed 20 typed prompts benchmark set**
+- [x] **Step 1: Add the fixed 20 typed prompts benchmark set**
 
 Create `scripts/eval/prompts_v2_typed20.jsonl` with stable IDs:
 
@@ -57,7 +61,7 @@ Create `scripts/eval/prompts_v2_typed20.jsonl` with stable IDs:
 {"id":"typed_002","instruction":"...","input":"...","category":"battle"}
 ```
 
-- [ ] **Step 2: Implement model generation runner for benchmark prompts**
+- [x] **Step 2: Implement model generation runner for benchmark prompts**
 
 Add `scripts/eval/eval_rubric.py` to:
 - load adapter/base from config,
@@ -71,7 +75,7 @@ def run_eval_prompts(model, tokenizer, prompts: list[dict], seed: int) -> list[d
         ...
 ```
 
-- [ ] **Step 3: Implement GPT-4o rubric judging (5 dimensions)**
+- [x] **Step 3: Implement GPT-4o rubric judging (5 dimensions)**
 
 In `scripts/eval/judge_gpt4o.py`, score each sample on:
 - style fidelity
@@ -82,7 +86,7 @@ In `scripts/eval/judge_gpt4o.py`, score each sample on:
 
 Return integer 1-5 per dimension and overall mean.
 
-- [ ] **Step 4: Persist trend-friendly evaluation outputs**
+- [x] **Step 4: Persist trend-friendly evaluation outputs**
 
 Append one line per prompt to `outputs/eval/eval_results.jsonl`:
 
@@ -92,7 +96,7 @@ Append one line per prompt to `outputs/eval/eval_results.jsonl`:
 
 Also save run summary to `outputs/eval/<run_id>/summary.json`.
 
-- [ ] **Step 5: Add regression check command**
+- [x] **Step 5: Add regression check command**
 
 Add a CLI mode:
 
@@ -104,7 +108,7 @@ Gate rule:
 - fail if current run average < `gate-min-avg`
 - fail if any dimension drops > `gate-max-drop` against previous run
 
-- [ ] **Step 6: Document evaluation workflow**
+- [x] **Step 6: Document evaluation workflow**
 
 Update `README.md` with a post-train section:
 
@@ -114,7 +118,7 @@ python scripts/eval/eval_rubric.py --config configs/qlora_config.yaml --run-id <
 
 Expected: generates per-prompt scores + pass/fail gate status.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add scripts/eval README.md
@@ -131,7 +135,7 @@ git commit -m "feat: add automated GPT-4o rubric evaluation and regression gatin
 - Modify: `configs/qlora_config.yaml`
 - Modify: `docs/TYPED_PAIRS_PIPELINE.md`
 
-- [ ] **Step 1: Add config-driven default for typed sample volume**
+- [x] **Step 1: Add config-driven default for typed sample volume**
 
 In `configs/qlora_config.yaml`, add:
 
@@ -142,7 +146,7 @@ data:
     min_ratio_vs_continuation: 0.30
 ```
 
-- [ ] **Step 2: Wire `generate_typed_pairs.py` to config fallback**
+- [x] **Step 2: Wire `generate_typed_pairs.py` to config fallback**
 
 If CLI `--per-template` absent, read from YAML:
 
@@ -150,7 +154,7 @@ If CLI `--per-template` absent, read from YAML:
 per_template = args.per_template if args.per_template is not None else cfg.data.typed_pairs.per_template
 ```
 
-- [ ] **Step 3: Add ratio warning in dataset build stage**
+- [x] **Step 3: Add ratio warning in dataset build stage**
 
 In `scripts/data/build_instructions.py`, print and gate ratio:
 
@@ -160,7 +164,7 @@ if typed_ratio < min_ratio:
     raise ValueError(f"typed ratio too low: {typed_ratio:.3f} < {min_ratio:.3f}")
 ```
 
-- [ ] **Step 4: Expose ratio stats in `--stats` output**
+- [x] **Step 4: Expose ratio stats in `--stats` output**
 
 Include:
 - continuation count
@@ -168,7 +172,7 @@ Include:
 - typed/total ratio
 - recommendation message when below threshold
 
-- [ ] **Step 5: Update pipeline docs with target values**
+- [x] **Step 5: Update pipeline docs with target values**
 
 In `docs/TYPED_PAIRS_PIPELINE.md`, add target:
 - `--per-template >= 50`
@@ -183,7 +187,7 @@ python scripts/data/build_instructions.py --stats --dry-run
 
 Expected: typed ratio meets threshold in stats output.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add scripts/gen/generate_typed_pairs.py scripts/data/build_instructions.py configs/qlora_config.yaml docs/TYPED_PAIRS_PIPELINE.md
@@ -200,7 +204,7 @@ git commit -m "feat: rebalance typed pair proportion with config-driven per-temp
 - Modify: `requirements.txt`
 - Modify: `README.md`
 
-- [ ] **Step 1: Add dependency**
+- [x] **Step 1: Add dependency**
 
 Add to `requirements.txt`:
 
@@ -208,7 +212,7 @@ Add to `requirements.txt`:
 datasketch
 ```
 
-- [ ] **Step 2: Implement near-duplicate detector**
+- [x] **Step 2: Implement near-duplicate detector**
 
 In `scripts/data/dedup_pairs.py`, MinHash each continuation sample (instruction+input+output text signature), then query LSH to keep first unique representative.
 
@@ -219,7 +223,7 @@ def text_minhash(text: str, num_perm: int = 128) -> MinHash:
     ...
 ```
 
-- [ ] **Step 3: Add dedup CLI options in build script**
+- [x] **Step 3: Add dedup CLI options in build script**
 
 In `scripts/data/build_instructions.py`:
 - `--dedup-continuation`
@@ -227,7 +231,7 @@ In `scripts/data/build_instructions.py`:
 
 When enabled, dedup only continuation pairs before merge with typed pairs.
 
-- [ ] **Step 4: Emit dedup report**
+- [x] **Step 4: Emit dedup report**
 
 Write `outputs/data/dedup_report.json`:
 
@@ -243,11 +247,11 @@ python scripts/data/build_instructions.py --dedup-continuation --dedup-threshold
 
 Expected: 15-25% continuation reduction (dataset dependent), no schema break.
 
-- [ ] **Step 6: Update docs**
+- [x] **Step 6: Update docs**
 
 Add section in `README.md` for dedup flag and expected quality impact.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add scripts/data/dedup_pairs.py scripts/data/build_instructions.py requirements.txt README.md
@@ -264,7 +268,7 @@ git commit -m "feat: add MinHash LSH deduplication for continuation training pai
 - Modify: `scripts/infer/inference.py`
 - Modify: `README.md`
 
-- [ ] **Step 1: Create categorized template config**
+- [x] **Step 1: Create categorized template config**
 
 `configs/prompt_templates_jinyong.yaml` with categories:
 - 人物对白
@@ -280,7 +284,7 @@ Each template includes:
 - `input_template`
 - `usage_notes`
 
-- [ ] **Step 2: Implement template loader and renderer**
+- [x] **Step 2: Implement template loader and renderer**
 
 In `scripts/infer/prompt_library.py`:
 
@@ -292,7 +296,7 @@ def render_prompt(template_id: str, slots: dict[str, str]) -> tuple[str, str]:
     ...
 ```
 
-- [ ] **Step 3: Add inference CLI options**
+- [x] **Step 3: Add inference CLI options**
 
 In `scripts/infer/inference.py`:
 - `--template-id`
@@ -301,7 +305,7 @@ In `scripts/infer/inference.py`:
 
 If template mode used, auto-build instruction/input from template.
 
-- [ ] **Step 4: Add fallback behavior**
+- [x] **Step 4: Add fallback behavior**
 
 When template fields missing, fail with clear error listing required slots.
 
@@ -314,11 +318,11 @@ python scripts/infer/inference.py --template-id battle_opening_01 --template-slo
 
 Expected: prompt renders correctly and generation succeeds.
 
-- [ ] **Step 6: Document template usage**
+- [x] **Step 6: Document template usage**
 
 Add quickstart examples to `README.md`.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add configs/prompt_templates_jinyong.yaml scripts/infer/prompt_library.py scripts/infer/inference.py README.md
@@ -335,7 +339,7 @@ git commit -m "feat: add categorized Jin Yong prompt template library for infere
 - Modify: `configs/qlora_config.yaml`
 - Modify: `README.md`
 
-- [ ] **Step 1: Add DPO config block**
+- [x] **Step 1: Add DPO config block**
 
 In `configs/qlora_config.yaml`:
 
@@ -348,14 +352,14 @@ dpo:
   prompt_set: scripts/eval/prompts_v2_typed20.jsonl
 ```
 
-- [ ] **Step 2: Build candidate completions per prompt**
+- [x] **Step 2: Build candidate completions per prompt**
 
 `scripts/dpo/build_preference_pairs.py`:
 - run SFT model and sample 2 completions per prompt,
 - send pair to GPT-4o pairwise ranker,
 - save DPO dataset JSONL with `prompt`, `chosen`, `rejected`.
 
-- [ ] **Step 3: Add DPO trainer script**
+- [x] **Step 3: Add DPO trainer script**
 
 `scripts/train/train_dpo.py`:
 - load SFT adapter as policy init,
@@ -363,7 +367,7 @@ dpo:
 - run TRL DPO training,
 - save DPO adapter separately to `outputs/jinyong-dpo/adapter`.
 
-- [ ] **Step 4: Add post-DPO mandatory eval**
+- [x] **Step 4: Add post-DPO mandatory eval**
 
 After DPO training, run Task 1 eval harness and compare to SFT baseline.
 
@@ -377,7 +381,7 @@ python scripts/eval/eval_rubric.py --config configs/qlora_config.yaml --run-id d
 
 Expected: style and instruction-following averages improve vs SFT baseline.
 
-- [ ] **Step 6: Document SFT->DPO workflow**
+- [x] **Step 6: Document SFT->DPO workflow**
 
 In `README.md`, add staged training section:
 1) SFT
@@ -385,7 +389,7 @@ In `README.md`, add staged training section:
 3) DPO
 4) evaluation gate
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add scripts/dpo scripts/train/train_dpo.py configs/qlora_config.yaml README.md
@@ -401,7 +405,7 @@ git commit -m "feat: add post-SFT DPO pipeline with GPT-4o ranked preference pai
 - Modify: `requirements.txt`
 - Modify: `README.md`
 
-- [ ] **Step 1: Add server dependencies**
+- [x] **Step 1: Add server dependencies**
 
 In `requirements.txt` ensure:
 
@@ -412,7 +416,7 @@ httpx
 sse-starlette
 ```
 
-- [ ] **Step 2: Implement SSE proxy endpoint**
+- [x] **Step 2: Implement SSE proxy endpoint**
 
 `scripts/server/stream_api.py`:
 - endpoint `POST /v1/generate/stream`
@@ -422,13 +426,13 @@ sse-starlette
   - `data: {"text":"..."}`
   - final `event: done`
 
-- [ ] **Step 3: Add health and non-stream endpoint**
+- [x] **Step 3: Add health and non-stream endpoint**
 
 Endpoints:
 - `GET /healthz`
 - `POST /v1/generate` (non-stream full text response)
 
-- [ ] **Step 4: Add model config**
+- [x] **Step 4: Add model config**
 
 Read from env:
 - `OLLAMA_BASE_URL`
@@ -447,13 +451,13 @@ curl -N -X POST http://127.0.0.1:8000/v1/generate/stream -H "Content-Type: appli
 
 Expected: incremental SSE token events emitted in real time.
 
-- [ ] **Step 6: Document frontend/video integration**
+- [x] **Step 6: Document frontend/video integration**
 
 In `README.md`, add snippets for:
 - browser `EventSource` consumption
 - video pipeline consumer polling/stream parse
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add scripts/server/stream_api.py requirements.txt README.md
