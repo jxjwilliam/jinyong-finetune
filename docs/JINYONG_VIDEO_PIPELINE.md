@@ -402,7 +402,7 @@ If you don't want to use the API yet:
 # After generating video, add Chinese narration with ElevenLabs
 import elevenlabs
 
-client = elevenlabs.ElevenLabs(api_key=os.environ["ELEVEN_API_KEY"])
+client = elevenlabs.ElevenLabs(api_key=os.environ["ELEVENLABS_API_KEY"])
 
 audio = client.generate(
     text=paragraph,           # the original Chinese paragraph

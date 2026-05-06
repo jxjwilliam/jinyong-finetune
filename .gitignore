@@ -23,6 +23,8 @@ data/instructions/*.jsonl
 # Local env
 .env
 .cursor/mcp.json
-docs/kaggle.json
+kaggle.json
 .DS_Store
 *.gguf
+docs/stories/
+outputs/tts/

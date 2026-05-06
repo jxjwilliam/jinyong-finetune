@@ -1,0 +1,54 @@
+{
+  "model": {
+    "preferred": "speech-2.8-hd",
+    "alternative": "speech-02-hd"
+  },
+  "voices": {
+    "narrator": [
+      {
+        "id": "male-qn-qingse",
+        "description": "官方示例可用男声，沉稳清晰，适合武侠旁白叙事"
+      },
+      {
+        "id": "Chinese (Mandarin)_Lyrical_Voice",
+        "description": "官方文档列出的中文系统音色，可作稳定后备"
+      }
+    ],
+    "male_lead": [
+      {
+        "id": "male-jianfeng",
+        "description": "豪迈铿锵、侠气十足，适合大侠对白、打斗喊话"
+      }
+    ],
+    "female_lead": [
+      {
+        "id": "female-shuya",
+        "description": "清冷温婉又带傲骨，适配金庸女侠、名门闺秀"
+      }
+    ]
+  },
+  "params": {
+    "speed": 0.90,
+    "pitch": 1,
+    "vol": 1.15,
+    "emotion": {
+      "narrator": "passionate",
+      "battle": "excited",
+      "tender": "gentle"
+    },
+    "audio_format": "mp3",
+    "sample_rate": 32000,
+    "bitrate": 192000
+  },
+  "notes": {
+    "cn_api": {
+      "base_url": "https://api.minimaxi.com/v1",
+      "endpoint": "https://api.minimaxi.com/v1/t2a_v2"
+    },
+    "global_api": {
+      "base_url": "https://api.minimax.io/v1",
+      "endpoint": "https://api.minimax.io/v1/t2a_v2"
+    },
+    "style_tips": "段落间适当加换行、逗号、顿号，增加停顿起伏；打斗文字单独分段，激情效果更明显"
+  }
+}

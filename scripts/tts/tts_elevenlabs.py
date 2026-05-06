@@ -9,7 +9,7 @@ from typing import Any
 
 import requests
 
-DEFAULT_VOICE_ID = "Xb7hH8MSUJpSbSDYk0k2"
+DEFAULT_VOICE_ID = "BWN0mOtkGHghA3CYFzFK"
 DEFAULT_MODEL_ID = "eleven_multilingual_v2"
 DEFAULT_OUTPUT_FORMAT = "mp3_44100_128"
 
