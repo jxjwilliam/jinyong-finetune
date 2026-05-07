@@ -79,18 +79,6 @@ python scripts/gen/generate_typed_pairs.py claude \
     --sleep 0.5   # increase if you hit rate limits
 ```
 
-**One bug to fix** — the model string:
-
-```python
-# generate_typed_pairs.py (_generate_claude_one)
-# current:
-model="claude-haiku-4-5",
-# correct current model string:
-model="claude-haiku-4-5-20251001",
-```
-
-Check with: `python -c "import anthropic; print(anthropic.__version__)"` — if it's ≥ 0.40, use the full versioned string.
-
 ---
 
 ## 3. What to Watch for to Make the LoRA Chat Work
