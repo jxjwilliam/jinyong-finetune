@@ -26,5 +26,4 @@ data/instructions/*.jsonl
 kaggle.json
 .DS_Store
 *.gguf
-docs/stories/
-outputs/tts/
+outputs/

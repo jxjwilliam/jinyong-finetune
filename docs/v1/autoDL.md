@@ -145,7 +145,7 @@ Defaults: adapter = **`{training.output_dir}/adapter`**, merged output = **`outp
 cd outputs && zip -r jinyong-merged.zip jinyong-merged/
 ```
 
-Further steps (SCP to Mac, **convert_hf_to_gguf.py**, Ollama): **`docs/LORA_TO_GGUF_GUIDE.md`**.
+Further steps (SCP to Mac, **convert_hf_to_gguf.py**, Ollama): **`docs/v1/LORA_TO_GGUF_GUIDE.md`**.
 
 ---
 
@@ -167,8 +167,8 @@ Use the same **`configs/qlora_config.yaml`** as the CLI. In a cell:
 
 ## 10. Inference and docs elsewhere
 
-- **PEFT / transformers** usage and prompts: **`docs/INFERENCE_GUIDE.md`**
-- **GGUF / Ollama** after merge: **`docs/LORA_TO_GGUF_GUIDE.md`**
+- **PEFT / transformers** usage and prompts: **`docs/v1/INFERENCE_GUIDE.md`**
+- **GGUF / Ollama** after merge: **`docs/v1/LORA_TO_GGUF_GUIDE.md`**
 
 ---
 

@@ -2,8 +2,8 @@
 
 Fine-tune **`Qwen/Qwen2.5-7B-Instruct`** with **QLoRA** (4-bit NF4) for Jin Yong–style Chinese wuxia generation. The default training profile targets **[AutoDL](https://www.autodl.com)** with **NVIDIA RTX 4090 (24 GB VRAM)**; **Kaggle / Colab** remain optional with a smaller-GPU config (see **`.cursor/rules/autodl.mdc`**).
 
-**AutoDL end-to-end steps:** **`docs/autoDL.md`**  
-**Typed scene generation + merge:** **`docs/TYPED_PAIRS_PIPELINE.md`** (architecture diagrams + CLI)
+**AutoDL end-to-end steps:** **`docs/v1/autoDL.md`**  
+**Typed scene generation + merge:** **`docs/v1/TYPED_PAIRS_PIPELINE.md`** (architecture diagrams + CLI)
 
 ## Project Layout
 
@@ -83,11 +83,11 @@ jinyong-finetune/
 ## Quick Start (AutoDL)
 
 1. Clone the repo on the instance (e.g. **`/root/autodl-tmp/jinyong-finetune`**).
-2. Follow **`docs/autoDL.md`** (environment, **`data/raw/`**, **`scripts/data/clean_text.py`** → **`scripts/data/build_instructions.py`** → **`scripts/train/train.py`** → optional **`scripts/train/merge_lora.py`**, zip/download).
+2. Follow **`docs/v1/autoDL.md`** (environment, **`data/raw/`**, **`scripts/data/clean_text.py`** → **`scripts/data/build_instructions.py`** → **`scripts/train/train.py`** → optional **`scripts/train/merge_lora.py`**, zip/download).
 3. Use **`notebooks/01_data_prep.ipynb`** / **`02_train.ipynb`** / **`03_inference.ipynb`** from repo root if you prefer Jupyter; they match the same YAML and scripts as the CLI.
 4. Training reads **`configs/qlora_config.yaml`** (**bf16**, **`packing: false`**, effective batch 16 on 4090 by default).
 5. **LoRA artifacts:** **`outputs/jinyong-qlora/adapter/`** — zip and download before the instance recycles.
-6. **Merged HF checkpoint (optional, on GPU):** **`scripts/train/merge_lora.py`** → default **`outputs/jinyong-merged/`**, then zip. **GGUF / Ollama:** **`docs/LORA_TO_GGUF_GUIDE.md`**.
+6. **Merged HF checkpoint (optional, on GPU):** **`scripts/train/merge_lora.py`** → default **`outputs/jinyong-merged/`**, then zip. **GGUF / Ollama:** **`docs/v1/LORA_TO_GGUF_GUIDE.md`**.
 
 ## Step-by-Step Workflow
 
@@ -112,7 +112,7 @@ Use this end-to-end sequence if you want a single checklist from raw text to dep
    - **`python scripts/train/train_dpo.py --config configs/qlora_config.yaml`**
    - **`python scripts/eval/eval_rubric.py --config configs/qlora_config.yaml --run-id dpo_<run_id>`**
 10. (Optional) Merge LoRA into full HF weights using **`python scripts/train/merge_lora.py --config configs/qlora_config.yaml`**.
-11. (Optional) Export to GGUF/Ollama using **`docs/LORA_TO_GGUF_GUIDE.md`**.
+11. (Optional) Export to GGUF/Ollama using **`docs/v1/LORA_TO_GGUF_GUIDE.md`**.
 12. Archive/download artifacts from **`outputs/`** before ephemeral cloud instances are recycled.
 
 ## SFT -> DPO Workflow
@@ -170,7 +170,7 @@ curl -N -X POST http://127.0.0.1:8000/v1/generate/stream \
 
 1. Upload this repo to GitHub.
 2. Clone in a GPU notebook; attach or download the **Jinyong Wuxia** dataset: `kaggle datasets download -d evilpsycho42/jinyong-wuxia -p data/raw --unzip`
-3. Run **`notebooks/01_data_prep.ipynb`** then **`notebooks/02_train.ipynb`** (or the same shell commands as **`docs/autoDL.md`**).
+3. Run **`notebooks/01_data_prep.ipynb`** then **`notebooks/02_train.ipynb`** (or the same shell commands as **`docs/v1/autoDL.md`**).
 4. On **T4 (16 GB)** you may need a copied YAML with **`fp16: true`**, **`bf16: false`**, **`bnb_4bit_compute_dtype: float16`**, and smaller **`per_device_train_batch_size`** — see **`.cursor/rules/autodl.mdc`**.
 
 ## Dataset Schema

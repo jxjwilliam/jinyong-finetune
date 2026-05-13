@@ -1,12 +1,12 @@
 ---
 description: AutoDL (autodl.com) cloud GPU workflow for QLoRA fine-tuning Jin Yong style
-globs: ["configs/**", "scripts/**", "notebooks/**", "docs/autoDL.md", "docs/LORA_TO_GGUF_GUIDE.md", "docs/INFERENCE_GUIDE.md"]
+globs: ["configs/**", "scripts/**", "notebooks/**", "docs/v1/autoDL.md", "docs/v1/LORA_TO_GGUF_GUIDE.md", "docs/v1/INFERENCE_GUIDE.md"]
 alwaysApply: false
 ---
 
 # AutoDL — LoRA / QLoRA fine-tune
 
-Primary training target: **[AutoDL](https://www.autodl.com)** instances with **NVIDIA RTX 4090 (24 GB VRAM)** and **`Qwen/Qwen2.5-7B-Instruct`**. Step-by-step cloud workflow: **`docs/autoDL.md`**.
+Primary training target: **[AutoDL](https://www.autodl.com)** instances with **NVIDIA RTX 4090 (24 GB VRAM)** and **`Qwen/Qwen2.5-7B-Instruct`**. Step-by-step cloud workflow: **`docs/v1/autoDL.md`**.
 
 ## Environment
 
@@ -29,19 +29,19 @@ Primary training target: **[AutoDL](https://www.autodl.com)** instances with **N
    Pass **multiple** `--typed-jsonl` paths to **`build_instructions.py`** (no manual `cat`).
 3. Preview: `python scripts/data/build_instructions.py --dry-run --stats`. Write JSONL: `python scripts/data/build_instructions.py --stats` (add `--typed-jsonl path.jsonl` if you generated typed pairs).
 4. `python scripts/train/train.py --config configs/qlora_config.yaml` — writes **`outputs/jinyong-qlora/adapter/`** (LoRA only, not full merged weights).
-5. Optional on the same GPU host: `python scripts/train/merge_lora.py --config configs/qlora_config.yaml` — full-precision merged HF dir (default **`outputs/jinyong-merged/`**) for GGUF export; see **`docs/LORA_TO_GGUF_GUIDE.md`**.
+5. Optional on the same GPU host: `python scripts/train/merge_lora.py --config configs/qlora_config.yaml` — full-precision merged HF dir (default **`outputs/jinyong-merged/`**) for GGUF export; see **`docs/v1/LORA_TO_GGUF_GUIDE.md`**.
 
 Run from **repo root** so imports and relative paths resolve (`python scripts/...`).
 
 ## Notebooks
 
-- **`notebooks/01_data_prep.ipynb`**, **`02_train.ipynb`**, **`03_inference.ipynb`** follow the same scripts and **`configs/qlora_config.yaml`** as the CLI (see **`docs/autoDL.md`**).
+- **`notebooks/01_data_prep.ipynb`**, **`02_train.ipynb`**, **`03_inference.ipynb`** follow the same scripts and **`configs/qlora_config.yaml`** as the CLI (see **`docs/v1/autoDL.md`**).
 - Use the same YAML as CLI training; no second set of “magic” hyperparameters in the notebook.
 
 ## After training
 
 - Zip or `scp` **`outputs/jinyong-qlora/adapter/`** (and tokenizer files there) off the instance.
-- Full merged HF weights: **`scripts/train/merge_lora.py`** on AutoDL, then zip **`outputs/jinyong-merged/`** (or your **`--merged-dir`**). GGUF / Ollama: **`docs/LORA_TO_GGUF_GUIDE.md`**.
+- Full merged HF weights: **`scripts/train/merge_lora.py`** on AutoDL, then zip **`outputs/jinyong-merged/`** (or your **`--merged-dir`**). GGUF / Ollama: **`docs/v1/LORA_TO_GGUF_GUIDE.md`**.
 
 ## Alternatives (not AutoDL)
 

@@ -25,7 +25,7 @@ python scripts/data/build_instructions.py --stats
 python scripts/data/build_instructions.py --dry-run --stats
 python scripts/data/build_instructions.py --chunk-size 300 --overlap 100
 
-# Optional typed scenes → JSONL (`docs/TYPED_PAIRS_PIPELINE.md`)
+# Optional typed scenes → JSONL (`docs/v1/TYPED_PAIRS_PIPELINE.md`)
 python scripts/gen/generate_typed_pairs.py claude --dry-run
 python scripts/gen/generate_typed_pairs.py openai --dry-run
 

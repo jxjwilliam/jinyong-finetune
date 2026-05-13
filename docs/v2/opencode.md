@@ -14,7 +14,7 @@
 | **Typed pairs 多样性** | 支持 Claude / DeepSeek / Kimi / MiniMax / GLM 多 API 生成不同类型场景，避免单一风格 |
 | **AutoDL 云训练优化** | 针对 RTX 4090 (24GB) 优化，`packing: false` 修复了 ChatML 格式问题 |
 | **本地部署友好** | 支持 M1/M3 Mac 本地推理，GGUF 量化后仅需 ~5GB RAM |
-| **视频管线文档完整** | `docs/JINYONG_VIDEO_PIPELINE.md` 提供了从段落 → 视频 prompt → NanoBanana 的完整流程 |
+| **视频管线文档完整** | `docs/v1/JINYONG_VIDEO_PIPELINE.md` 提供了从段落 → 视频 prompt → NanoBanana 的完整流程 |
 | **开源可扩展** | MIT 风格，脚本模块化，易于添加新功能 |
 
 ### Cons (劣势)
@@ -22,7 +22,7 @@
 | 劣势 | 说明 |
 |------|------|
 | **需要 GPU 训练** | QLoRA 虽然降低要求，但仍需 24GB VRAM（4090）或云 GPU，本地 Mac 无法训练 |
-| **视频管线脚本未实现** | `docs/JINYONG_VIDEO_PIPELINE.md` 中的 `generate_paragraph.py`、`pipeline.py` 等仅存在于文档中，未落地 |
+| **视频管线脚本未实现** | `docs/v1/JINYONG_VIDEO_PIPELINE.md` 中的 `generate_paragraph.py`、`pipeline.py` 等仅存在于文档中，未落地 |
 | **数据集可能失衡** | sliding-window continuation 对可能远多于 typed pairs，导致模型倾向"续写"而非"指令跟随" |
 | **无自动质量评估** | 没有脚本自动筛选高质量段落用于视频生成，需人工筛选 |
 | **NanoBanana API 未验证** | 文档中 API 端点为占位符 (`nanobanana.io/v1/...`)，实际可用性未知 |
@@ -79,7 +79,7 @@
 
 | 功能 | 说明 | 预估工作量 |
 |------|------|-----------|
-| **视频管线脚本落地** | 将 `docs/JINYONG_VIDEO_PIPELINE.md` 中的 `generate_paragraph.py`、`translate_to_prompt.py`、`pipeline.py` 实现为 `scripts/video/` 下的可运行脚本 | 2-3 天 |
+| **视频管线脚本落地** | 将 `docs/v1/JINYONG_VIDEO_PIPELINE.md` 中的 `generate_paragraph.py`、`translate_to_prompt.py`、`pipeline.py` 实现为 `scripts/video/` 下的可运行脚本 | 2-3 天 |
 | **段落质量评分器** | 用 Claude API 对生成段落评分（文风典雅、画面感、原创性），自动筛选 Top-K 用于视频 | 1 天 |
 | **场景模板库** | 创建 `configs/video_scenes.json`，包含 50+  curated 场景描述，适配视频生成 | 0.5 天 |
 | **NanoBanana API 验证** | 测试实际 API 端点，更新文档中的占位符 URL | 0.5 天 |
@@ -246,7 +246,7 @@ scene = "郭靖只身站在华山之巅，寒风呼啸，云海翻涌，手握�
 # 安装依赖
 pip install openai anthropic requests
 
-# 一键生成视频（待实现，基于 docs/JINYONG_VIDEO_PIPELINE.md）
+# 一键生成视频（待实现，基于 docs/v1/JINYONG_VIDEO_PIPELINE.md）
 python scripts/video/pipeline.py \
   --scenes configs/video_scenes.json \
   --model kling_3 \
@@ -262,7 +262,7 @@ python scripts/video/pipeline.py \
 - **创建日期：** 2026-05-05
 - **基于仓库版本：** `5bfce79` (fix: tune learning rate and remove modules_to_save; add inference and GGUF conversion scripts)
 - **相关文档：**
-  - `docs/JINYONG_VIDEO_PIPELINE.md` — 视频生成管线详细文档
-  - `docs/LORA_TO_GGUF_GUIDE.md` — GGUF 转换与 Ollama 部署
-  - `docs/TYPED_PAIRS_PIPELINE.md` — Typed pairs 生成管线
-  - `docs/autoDL.md` — AutoDL 云训练 runbook
+  - `docs/v1/JINYONG_VIDEO_PIPELINE.md` — 视频生成管线详细文档
+  - `docs/v1/LORA_TO_GGUF_GUIDE.md` — GGUF 转换与 Ollama 部署
+  - `docs/v1/TYPED_PAIRS_PIPELINE.md` — Typed pairs 生成管线
+  - `docs/v1/autoDL.md` — AutoDL 云训练 runbook

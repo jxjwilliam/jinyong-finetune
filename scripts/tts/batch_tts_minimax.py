@@ -21,8 +21,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--input-dir",
         type=str,
-        default="docs/stories",
-        help="Directory containing .md files (default: docs/stories).",
+        default="outputs/stories",
+        help="Directory containing .md files (default: outputs/stories).",
     )
     parser.add_argument(
         "--output-dir",

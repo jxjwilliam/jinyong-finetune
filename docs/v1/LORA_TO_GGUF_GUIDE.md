@@ -47,7 +47,7 @@ export HF_ENDPOINT=https://hf-mirror.com
 python scripts/train/merge_lora.py --config configs/qlora_config.yaml
 ```
 
-This reads **`configs/qlora_config.yaml`** for the base model id and adapter directory (**`outputs/jinyong-qlora/adapter`** by default) and writes **`outputs/jinyong-merged/`** (override with **`--merged-dir`** / **`--dtype float16`** if needed). See **`docs/autoDL.md`** for the full AutoDL runbook.
+This reads **`configs/qlora_config.yaml`** for the base model id and adapter directory (**`outputs/jinyong-qlora/adapter`** by default) and writes **`outputs/jinyong-merged/`** (override with **`--merged-dir`** / **`--dtype float16`** if needed). See **`docs/v1/autoDL.md`** for the full AutoDL runbook.
 
 Equivalent one-off Python (if you prefer not to use the script) is the same logic: load base in full precision → **`PeftModel.from_pretrained`** → **`merge_and_unload()`** → **`save_pretrained`**.
 
@@ -273,7 +273,7 @@ Score each output on these 5 dimensions (1–5 each, max 25):
 | 画面感 | Visually translatable — can you picture it as a video shot? |
 | 原创性 | No recognizable scenes from original novels |
 
-Target: fine-tuned score ≥ base model on 文风典雅 and 武功描写. If base wins on all 5, the fine-tune needs more typed pairs — run `scripts/gen/generate_typed_pairs.py` (`claude` or `openai`); see **`docs/TYPED_PAIRS_PIPELINE.md`**.
+Target: fine-tuned score ≥ base model on 文风典雅 and 武功描写. If base wins on all 5, the fine-tune needs more typed pairs — run `scripts/gen/generate_typed_pairs.py` (`claude` or `openai`); see **`docs/v1/TYPED_PAIRS_PIPELINE.md`**.
 
 ---
 

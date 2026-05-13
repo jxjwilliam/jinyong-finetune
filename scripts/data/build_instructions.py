@@ -104,7 +104,7 @@ def parse_args() -> argparse.Namespace:
         metavar="PATH",
         help=(
             "Typed pairs JSONL (repeat flag or comma-separated in one arg). "
-            "Skipped if path missing. See docs/TYPED_PAIRS_PIPELINE.md."
+            "Skipped if path missing. See docs/v1/TYPED_PAIRS_PIPELINE.md."
         ),
     )
     parser.add_argument("--chunk-size", type=int, default=300)
@@ -217,7 +217,7 @@ def main() -> None:
         print(f"Typed pairs total (valid): {len(typed_valid):,} (from {raw_total:,} raw rows)")
     else:
         print("\n[info] No --typed-jsonl provided. Only continuation pairs will be used.")
-        print("       Run scripts/gen/generate_typed_pairs.py claude|openai … (see docs/TYPED_PAIRS_PIPELINE.md).")
+        print("       Run scripts/gen/generate_typed_pairs.py claude|openai … (see docs/v1/TYPED_PAIRS_PIPELINE.md).")
 
     combined = cont_valid + typed_valid
 

@@ -140,4 +140,4 @@ See [`notebooks/03_inference.ipynb`](../notebooks/03_inference.ipynb).
 
 - **Costs**: `--per-template` multiplies calls × number of ids in each bucket.
 - **Quality**: Tune `--min-output-chars` in `build_instructions.py` if skeleton prompts yield shorter completions.
-- **Mainland Hub**: Training/merge may need `HF_ENDPOINT`; see [`docs/autoDL.md`](autoDL.md).
+- **Mainland Hub**: Training/merge may need `HF_ENDPOINT`; see [`docs/v1/autoDL.md`](autoDL.md).

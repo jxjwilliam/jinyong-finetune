@@ -38,7 +38,7 @@ Implementation status sync (2026-05-05, local Mac-first):
 - Modify: `scripts/data/build_instructions.py`
 - Modify: `configs/qlora_config.yaml`
 - Modify: `requirements.txt`
-- Modify: `docs/TYPED_PAIRS_PIPELINE.md`
+- Modify: `docs/v1/TYPED_PAIRS_PIPELINE.md`
 - Modify: `README.md`
 
 ---
@@ -133,7 +133,7 @@ git commit -m "feat: add automated GPT-4o rubric evaluation and regression gatin
 - Modify: `scripts/gen/generate_typed_pairs.py`
 - Modify: `scripts/data/build_instructions.py`
 - Modify: `configs/qlora_config.yaml`
-- Modify: `docs/TYPED_PAIRS_PIPELINE.md`
+- Modify: `docs/v1/TYPED_PAIRS_PIPELINE.md`
 
 - [x] **Step 1: Add config-driven default for typed sample volume**
 
@@ -174,7 +174,7 @@ Include:
 
 - [x] **Step 5: Update pipeline docs with target values**
 
-In `docs/TYPED_PAIRS_PIPELINE.md`, add target:
+In `docs/v1/TYPED_PAIRS_PIPELINE.md`, add target:
 - `--per-template >= 50`
 - typed ratio target `>= 30%`
 
@@ -190,7 +190,7 @@ Expected: typed ratio meets threshold in stats output.
 - [x] **Step 7: Commit**
 
 ```bash
-git add scripts/gen/generate_typed_pairs.py scripts/data/build_instructions.py configs/qlora_config.yaml docs/TYPED_PAIRS_PIPELINE.md
+git add scripts/gen/generate_typed_pairs.py scripts/data/build_instructions.py configs/qlora_config.yaml docs/v1/TYPED_PAIRS_PIPELINE.md
 git commit -m "feat: rebalance typed pair proportion with config-driven per-template defaults"
 ```
 
