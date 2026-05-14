@@ -6,6 +6,13 @@
 - Chat
 - Export
 
+- Supervised Fine-tuning
+- 学习率 learning-rate: 5e-5
+- Epochs: 3.0
+- Max Gradient norm: 1.0
+- Max samples: 100000
+- Compute type: bf16
+
 
 ## 训练轮数(epoch)
 
@@ -27,3 +34,5 @@ learning_rate: 5e-5
 - opencode + superpowers
 - deepseek tui
 - 豆包
+
+
